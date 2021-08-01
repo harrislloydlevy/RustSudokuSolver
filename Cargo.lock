@@ -1,0 +1,4 @@
+[[package]]
+name = "rust_sudoku_solver"
+version = "0.1.0"
+
