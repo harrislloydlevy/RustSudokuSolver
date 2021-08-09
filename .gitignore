@@ -1,7 +1,5 @@
 /target
 **/*.rs.bk
 *.swp
-*.un~
-*.rs~
 *.exe
-*.toml~
+*~
