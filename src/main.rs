@@ -1,5 +1,6 @@
 use std::fs;
 use std::io;
+use std::fmt;
 use std::io::BufRead;
 
 
@@ -24,6 +25,85 @@ struct Box {
     poss: [bool; 10]
 }
 
+const BLANK_BOX:Box = Box {
+    value: None,
+    poss: [false, true, true, true, true, true, true, true, true, true ]
+};
+
+impl fmt::Display for Box {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        match self.value {
+            Some(x) => formatter.write_fmt(format_args!("{}", x)),
+            None    => formatter.write_str(".")
+        }
+    }
+}
+
+impl Box {
+    /**
+     * box_value
+     *
+     * Return a box of a particular value.
+     */
+    fn from_value(x:u8) -> Box {
+        let mut result = BLANK_BOX;
+        result.value = Some(x);
+        result.poss = BLANK_BOX.poss;
+        result.poss[x as usize] = true;
+    
+        result
+    }
+
+	/**
+     * from_possibles
+	 *
+ 	 * Create a new box without a known value, from with a known set of possible values.
+	 */
+	fn from_possibles(possibles:Vec<u8>) -> Box {
+		let mut new_box = BLANK_BOX;
+		new_box.set_poss(possibles);
+		new_box
+	}
+
+	fn set_possibles(&self, possibles:Vec<u8>) {
+		
+	}
+    
+    /**
+     * check
+     * 
+     * Check that a box is internally consistent and in a "good" state that doesn't represent and
+     * internal inconsistency.
+     * 
+     * Doesn't retrun anything just asserts if the box is invalid.
+     */
+    fn check(self: Box) {
+        match self.value {
+            Some(x) => {
+            	// If we have a confirmed value just check that it's between 1-9 and the possibles
+            	// values array matches the confirmed value.
+    			assert!(x >= 1);
+    			assert!(x <= 9);
+    
+    			// As we do sometimes use the "possibles array make sure it shows the only possible
+    			// value in this box is it's actual value.
+        		let mut poss_values = [false, false, false, false, false, false, false, false, false, false];
+    			poss_values[x as usize] = true;
+    			
+    			assert!(self.poss == poss_values);
+            },
+            None => {
+    			// Check with no confirmed value is that "0" is not a possible value.
+    			assert!(self.poss[0] == false);
+
+				// Check that there is at least one index of the array of possible values that is positive.
+				let mut found_true = false;
+				self.poss.iter().map(|val| { found_true |= *val });
+				assert!(found_true);
+            }
+        }
+    }
+}
 
 #[derive(PartialEq, Debug)]
 struct Cell {
@@ -37,10 +117,6 @@ struct Sudoku {
 
 // Instantiating these structures from nothing can be time consuming so we pre-define a series of
 // blank versions of each struct for convenience later here.
-const BLANK_BOX:Box = Box {
-    value: None,
-    poss: [false, true, true, true, true, true, true, true, true, true ]
-};
 
 const BLANK_CELL:Cell = Cell {
     boxes: [BLANK_BOX, BLANK_BOX, BLANK_BOX,
@@ -66,20 +142,6 @@ const BOT_LFT:usize = 6;
 const BOT_MID:usize = 7;
 const BOT_RHT:usize = 8;
 
-/*
- * cell_set
- *
- * Return a cell of a particular value.
- */
-fn box_value(x:u8) -> Box {
-    let mut result = BLANK_BOX;
-    result.value = Some(x);
-    result.poss = [false, false, false, false, false, false, false, false, false, false];
-    result.poss[x as usize] = true;
-
-    return result;
-}
-
 // This function creates a sudoku from a file. I don't knwo enough rust
 // yet to have it return a more generic error so just using io::Error
 //
@@ -91,15 +153,15 @@ fn read_simple_sudoku(filename:String) -> Result<Sudoku, io::Error> {
     // spaces. Empty spaces are treated as blanks.
     //
     // Like below:
-    // | 1 |012|012|
+    // |.1.|012|012|
     // |345|345|345|
-    // |678| 7 |678|
+    // |678|..7|678|
     // -------------
-    // | 12|912|912|
+    // |.12|912|912|
     // |345|345|345|
     // |678|678|678|
     // -------------
-    // | 12| 12| 12|
+    // |.12|.12|.12|
     // |345|345|345|
     // |678|678|678|
    
@@ -112,7 +174,7 @@ fn read_simple_sudoku(filename:String) -> Result<Sudoku, io::Error> {
 
     let mut reader = std::io::BufReader::new(file);
 
-    // Instantiatie sudoko as blank
+    // Instantiatie sudoku as blank
     let mut sudoku = BLANK_SUDOKU;
     // To read that stream into our more strutued 3- level tree we iterate
     // over:
@@ -134,7 +196,6 @@ fn read_simple_sudoku(filename:String) -> Result<Sudoku, io::Error> {
             // Read a new line that crosses across all of the boxes.
             let length = reader.read_line(&mut line).expect("Could not read line");
             assert_eq!(length, 15); // Make sure there's enough data in line for all the rows
-            println!("{} / {}: {}", cur_cel_row, cur_box_row, line);
 
             // Read charachters off from the RIGHT of the string using the pop
             // function. So first read off the \n and tehn continue right to
@@ -142,7 +203,7 @@ fn read_simple_sudoku(filename:String) -> Result<Sudoku, io::Error> {
             assert_eq!(line.pop(), Some('\n'));
             assert_eq!(line.pop(), Some('\r'));
 
-            // From 3 to 0 because we're going from right to left!
+            // From 3 to 0 because we're going from right to left popping off end of the string.
             for cur_cel_col in (0..3).rev() {
                 // Read off the first '|'
                 assert_eq!(line.pop(), Some('|'));
@@ -158,15 +219,13 @@ fn read_simple_sudoku(filename:String) -> Result<Sudoku, io::Error> {
                     // Initiate a new box to write into the Sudoku.
                     let value:Box;
 
-                    println!("read {}/{}: {}", cur_cel_col, cur_box_col, char);
-
                     // 
                     if char == '.' {
                         value = BLANK_BOX;
                     } else {
                         let digit = char.to_digit(10).expect("Expected number or '.'");
                         assert!(digit >= 1 && digit <= 9, "Expected a number between 1 and 9");
-                        value = box_value(digit as u8);
+                        value = Box::from_value(digit as u8);
                     }
                     // To convert row and col to an index just times
                     // the row by 3. This matches our structure of a 9 element
@@ -187,6 +246,24 @@ fn read_simple_sudoku(filename:String) -> Result<Sudoku, io::Error> {
     return Ok(sudoku);
 }
 
+fn write_simple_sudoku(sudoku:Sudoku) {
+    println!("-----------");
+    for cur_cel_row in 0..3 {
+        for cur_box_row in 0..3 {
+            println!("{}{}{}|{}{}{}|{}{}{}",
+                     sudoku.cells[cur_cel_row*3  ].boxes[cur_box_row*3  ],
+                     sudoku.cells[cur_cel_row*3  ].boxes[cur_box_row*3+1],
+                     sudoku.cells[cur_cel_row*3  ].boxes[cur_box_row*3+2],
+                     sudoku.cells[cur_cel_row*3+1].boxes[cur_box_row*3  ],
+                     sudoku.cells[cur_cel_row*3+1].boxes[cur_box_row*3+1],
+                     sudoku.cells[cur_cel_row*3+1].boxes[cur_box_row*3+2],
+                     sudoku.cells[cur_cel_row*3+2].boxes[cur_box_row*3  ],
+                     sudoku.cells[cur_cel_row*3+2].boxes[cur_box_row*3+1],
+                     sudoku.cells[cur_cel_row*3+2].boxes[cur_box_row*3+2]);
+         }
+         println!("-----------");
+    }
+}
 
 fn main() {
     println!("Hellow World");
@@ -197,6 +274,7 @@ mod tests {
     // Inherit everything from up a level so we can run functions from there.
     
     use super::*;
+
     #[test]
     fn test_blank_read() {
         // Test that reading and writing a sudoku works.
@@ -223,5 +301,74 @@ mod tests {
         assert_eq!(result.cells[BOT_RHT].boxes[TOP_MID].value, Some(1));
         assert_eq!(result.cells[BOT_RHT].boxes[MID_MID].value, Some(2));
         assert_eq!(result.cells[BOT_RHT].boxes[BOT_MID].value, Some(3));
+
+        write_simple_sudoku(result);
     }
+
+	#[test]
+	fn test_ok_value_box() {
+
+		// Ensure box with a single value passes
+		let ok_value_box = Box::from_value(2);
+		ok_value_box.check();
+	}
+
+	#[test]
+	#[should_panic]
+	// Checks that a box with no possible values will fail
+	fn test_no_poss_box() {
+		let ok_no_value = BLANK_BOX;
+
+		// This box has no value so should pass all it's test.
+		ok_no_value.check();
+	}
+
+	#[test]
+	#[should_panic]
+	// Checks that values outside of the 0-9 range fail
+	fn test_bad_value_box() {
+		let bad_value =
+			Box {
+				value: Some(11),
+				poss: [false,false,false,false,false,false,false,false,false,false]
+			};
+
+		// This box has no value so should pass all it's test.
+		bad_value.check();
+	}
+
+	#[test]
+	#[should_panic]
+	// Checks for a box with a set value, but a possibles array that doesn't match.
+	fn test_bad_possibles_box() {
+		let bad_value =
+			Box {
+				value: Some(4),
+				poss: [false,true,false,false,false,true,false,false,false,false]
+			};
+
+		bad_value.check();
+	}
+
+	#[test]
+	#[should_panic]
+	// Checks that a box with no possibilities fails.
+	fn test_has_possibles_box() {
+		let bad_value =
+			Box {
+				value: None, 
+				poss: [false,false,false,false,false,false,false,false,false,false]
+			};
+
+		bad_value.check();
+	}
+
+	#[test]
+	// Check that a boxes methods for updating and reading values stay consistent.
+	fn test_value_set_and_read() {
+		let setter = Box::from_possibles(vec![1,4,7]);
+
+		assert!(setter.poss ==
+			[false, true, false, false, true, false, false, true, false, false]);
+	}
 }
