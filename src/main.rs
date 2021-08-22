@@ -27,8 +27,10 @@ struct Box {
 
 const BLANK_BOX:Box = Box {
     value: None,
-    poss: [false, true, true, true, true, true, true, true, true, true ]
+    poss: [false, true, true, true, true, true, true, true, true, true]
 };
+
+const BOX_EMPTY_POSS: [bool; 10] = [false, false, false, false, false, false, false, false, false, false];
 
 impl fmt::Display for Box {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -48,11 +50,22 @@ impl Box {
     fn from_value(x:u8) -> Box {
         let mut result = BLANK_BOX;
         result.value = Some(x);
-        result.poss = BLANK_BOX.poss;
+        result.poss = BOX_EMPTY_POSS;
         result.poss[x as usize] = true;
     
         result
     }
+
+	/**
+     * set_val
+	 *
+	 * Set teh value of an existing box, including the possible valyues.
+	 */
+	fn set_val(&mut self, x:u8)	{
+		self.value = Some(x);
+		self.poss = BOX_EMPTY_POSS;
+		self.poss[x as usize] = true;
+	}
 
 	/**
      * from_possibles
@@ -61,12 +74,34 @@ impl Box {
 	 */
 	fn from_possibles(possibles:Vec<u8>) -> Box {
 		let mut new_box = BLANK_BOX;
-		new_box.set_poss(possibles);
+		new_box.set_possibles(possibles);
 		new_box
 	}
 
-	fn set_possibles(&self, possibles:Vec<u8>) {
-		
+	/**
+ 	 * set_possiblities
+	 *
+	 * Set what the new possible values of this box could be. From list of u8s.
+	 *
+	 * Note that setting a *single* possibility implicitly sets that possibility
+	 * as the value for this box.
+	 */
+	fn set_possibles(&mut self, possibles:Vec<u8>) {
+		assert!(possibles.len() > 0);
+		assert!(possibles.len() <= 9);
+		match possibles.len() {
+			// If just a single value revert to setting that value as if it was a flat out set.
+			1 => self.set_val(possibles[0]),
+			// If a list set us back to 0 and set true for only those values we're given.
+			_ => {
+				// Should not have value know if we're setting possibles! Can't go backwards.
+				assert!(self.value == None);
+				self.poss = BOX_EMPTY_POSS;
+				for x in possibles {
+					self.poss[x as usize] = true;
+				}
+			}
+		}
 	}
     
     /**
@@ -98,7 +133,10 @@ impl Box {
 
 				// Check that there is at least one index of the array of possible values that is positive.
 				let mut found_true = false;
-				self.poss.iter().map(|val| { found_true |= *val });
+				for x in self.poss.iter() {
+					found_true |= x;
+					println!("{} / {}", x, found_true);
+				}
 				assert!(found_true);
             }
         }
@@ -310,6 +348,7 @@ mod tests {
 
 		// Ensure box with a single value passes
 		let ok_value_box = Box::from_value(2);
+		println!("OK BOX: {:?}", ok_value_box);
 		ok_value_box.check();
 	}
 
@@ -317,9 +356,11 @@ mod tests {
 	#[should_panic]
 	// Checks that a box with no possible values will fail
 	fn test_no_poss_box() {
-		let ok_no_value = BLANK_BOX;
+		let mut ok_no_value = BLANK_BOX;
+		ok_no_value.poss = BOX_EMPTY_POSS;
+			
 
-		// This box has no value so should pass all it's test.
+		// This box has no value so should fail it's check.
 		ok_no_value.check();
 	}
 
