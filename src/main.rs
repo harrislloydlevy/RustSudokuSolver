@@ -25,6 +25,9 @@ struct Box {
     poss: [bool; 10]
 }
 
+const ON:u16 = 1;
+const OFF:u16 = 1;
+
 const BLANK_BOX:Box = Box {
     value: None,
     poss: [false, true, true, true, true, true, true, true, true, true]
@@ -79,6 +82,17 @@ impl Box {
 	}
 
 	/**
+     * from_possibles
+	 *
+ 	 * Create a new box without a known value, from with a known set of possible values.
+	 */
+	fn from_possibles_bits(possibles:u16) -> Box {
+		let mut new_box = BLANK_BOX;
+		new_box.set_possibles_bits(possibles);
+		new_box
+	}
+
+	/**
  	 * set_possiblities
 	 *
 	 * Set what the new possible values of this box could be. From list of u8s.
@@ -104,6 +118,50 @@ impl Box {
 		}
 	}
     
+	/**
+ 	 * set_possiblities_bits
+	 *
+	 * Set what the new possible values of this box could be. From bit pattern.
+	 * As I'm lazy and don't want to deal with a ton of "off by one" bugs the bit
+	 * pattern starts from index 1 so to set or clear a possibility you set the
+	 * 1 << value where value is from 1 to 9.
+	 *
+	 * Note that setting a *single* possibility implicitly sets that possibility
+	 * as the value for this box.
+	 */
+	fn set_possibles_bits(&mut self, possibles:u16) {
+		// Can never have no options.
+		assert!(possibles != 0);
+		// Ensure no bits set above the 9th position by checking bitmask
+		// against 01111111110;
+		assert!((possibles & 0b1111111110) == possibles);
+
+		// Check if there is only a single bit set 
+		if possibles == possibles & (!(possibles-1)) {
+			// Unforunately doing a match on (1 >> 1) doesn't work so we need to
+			// check for exact bit patterns.
+			match possibles {
+				        0b10 => self.set_val(1),
+				       0b100 => self.set_val(2),
+				      0b1000 => self.set_val(3),
+				     0b10000 => self.set_val(4),
+				    0b100000 => self.set_val(5),
+				   0b1000000 => self.set_val(6),
+				  0b10000000 => self.set_val(7),
+				 0b100000000 => self.set_val(8),
+				0b1000000000 => self.set_val(9),
+				_            => assert!(false)
+			}
+		} else {
+			// Otherwise there are multiple possible values here. Iterate over them
+			let mut n = 0;
+			while n <= 9 {
+				self.poss[n] = (possibles >> n & 0b1) == 0b1;
+				n = n+1;
+			}
+		}
+	}
+
     /**
      * check
      * 
@@ -411,5 +469,13 @@ mod tests {
 
 		assert!(setter.poss ==
 			[false, true, false, false, true, false, false, true, false, false]);
+
+		// Now we do the same but with a bit pattern.
+		let bit_pattern:u16 = ON << 1 | ON << 4 | ON <<7;
+		let setter = Box::from_possibles_bits(bit_pattern);
+
+		assert!(setter.poss ==
+			[false, true, false, false, true, false, false, true, false, false]);
+
 	}
 }
