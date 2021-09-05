@@ -19,7 +19,7 @@ use std::io::BufRead;
 // We are resisting the urge to squeeze this all into an u16 with the top bits used for the
 // possible values and the bottom for the final. This project is to learn rust not play with
 // bitwise operators.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 struct Box {
     value: Option<u8>,
     poss: [bool; 10]
@@ -50,11 +50,9 @@ impl Box {
      *
      * Return a box of a particular value.
      */
-    fn from_value(x:u8) -> Box {
+    fn from_val(x:u8) -> Box {
         let mut result = BLANK_BOX;
-        result.value = Some(x);
-        result.poss = BOX_EMPTY_POSS;
-        result.poss[x as usize] = true;
+		result.set_val(x);
     
         result
     }
@@ -82,7 +80,26 @@ impl Box {
 	}
 
 	/**
-     * from_possibles
+	 * remove_possible_bits
+	 *
+	 * Based on a bitmap further restrict the box removing any values not makred as possible
+	 * This doesn't add any new possibilities if they are possible in the map, just removes.
+	 *
+	 * Useful when an algorithim has shown values as not possible, but doesn't say anything
+	 * about whic ones are possible
+	 */ 
+	fn remove_possible_bits(&mut self, possible_bits:u16) {
+		// Iterate over the bit pattern flipping values in the possible value array to
+		// 0 where the bitmak says so.
+		for x in 1..9 {
+			if (possible_bits & ON << x) != 0 {
+				self.poss[x as usize] = false;
+			}
+		}
+	}
+
+	/**
+     * from_possibles_bits
 	 *
  	 * Create a new box without a known value, from with a known set of possible values.
 	 */
@@ -201,9 +218,54 @@ impl Box {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 struct Cell {
     boxes: [Box; 9]
+}
+
+impl Cell {
+	// Run "normalization" which is the simplest form of solving any 9 element sudoku
+	// over this particular cell.
+    fn normalise(&mut self) {
+		// We can't just call normalise_boxes direclty as that fucntion expect an array
+		// of references to boxes instead of an array of boxes. So we have to pass
+		// in an array of refs instead.
+		normalise_boxes(&mut self.boxes);
+	}
+}
+
+// This function runs over an array of 9 boxes and adjust the possible values of
+// each one based on the "solved" values already found in the array. This is run in
+// place over the array, the specific functions that use it at the Cell and whole of
+// sudoku level do the work of copying data to keep it thread safe.
+fn normalise_boxes(mut boxes: &[Box; 9]) {
+		// pos_vals is the bit mask of still possible values. Each soved value
+		// will zero out it's own value in the mask so as to mark it as not possible
+		// in the unsovled values in the cell.
+		let mut poss_vals:u16 = 0;
+		for x in boxes.iter() {
+			// If we have an actual value we blank out that possible value from the map
+			// otherwise ignore the uncionfirmed values.
+			match x.value {
+				// mask it off against the inverse of the found value.
+				Some(confirmed_value) => {
+					poss_vals &= !( ON << confirmed_value)
+				},
+				None => ()
+			};
+		}
+
+		// Now in poss_vals we have an bitmap that represents all the values that nothing
+		// else can be. So we apply that to each of the values in the 9 array
+		// set that are still looking for a value.
+		for &mut x in boxes.iter() {
+			// If we have an unconfirmed values remove the possibilities foumd, otherwise
+			// for solved boxes we just skip over.
+			match x.value {
+				Some(n) => {},
+				None => x.remove_possible_bits(poss_vals)
+			}
+		}
 }
 
 #[derive(PartialEq, Debug)]
@@ -321,7 +383,7 @@ fn read_simple_sudoku(filename:String) -> Result<Sudoku, io::Error> {
                     } else {
                         let digit = char.to_digit(10).expect("Expected number or '.'");
                         assert!(digit >= 1 && digit <= 9, "Expected a number between 1 and 9");
-                        value = Box::from_value(digit as u8);
+                        value = Box::from_val(digit as u8);
                     }
                     // To convert row and col to an index just times
                     // the row by 3. This matches our structure of a 9 element
@@ -405,7 +467,7 @@ mod tests {
 	fn test_ok_value_box() {
 
 		// Ensure box with a single value passes
-		let ok_value_box = Box::from_value(2);
+		let ok_value_box = Box::from_val(2);
 		println!("OK BOX: {:?}", ok_value_box);
 		ok_value_box.check();
 	}
@@ -478,4 +540,19 @@ mod tests {
 			[false, true, false, false, true, false, false, true, false, false]);
 
 	}
+
+	#[test]
+	// Check that we can solve a box when there's only one value left.
+	fn test_last_value_box() {
+		let test_cell:Cell = Cell {
+			boxes:[ BLANK_BOX,        Box::from_val(2), Box::from_val(3),
+                    Box::from_val(4), Box::from_val(5), Box::from_val(6),		
+                    Box::from_val(7), Box::from_val(8), Box::from_val(9)]
+		};
+ 
+		test_cell.normalise();
+
+		assert!(test_cell.boxes[TOP_LFT].value == Some(1));
+	}
+
 }
