@@ -25,8 +25,8 @@ struct Box {
     poss: [bool; 10]
 }
 
-const ON:u16 = 1;
-const OFF:u16 = 1;
+const ON:u16  = 1;
+const OFF:u16 = 0;
 
 const BLANK_BOX:Box = Box {
     value: None,
@@ -89,13 +89,9 @@ impl Box {
 	 * about whic ones are possible
 	 */ 
 	fn remove_possible_bits(&mut self, possible_bits:u16) {
-		// Iterate over the bit pattern flipping values in the possible value array to
-		// 0 where the bitmak says so.
-		for x in 1..9 {
-			if (possible_bits & ON << x) != 0 {
-				self.poss[x as usize] = false;
-			}
-		}
+		let curr_poss = self.get_possibles_bits();
+		self.set_possibles_bits(curr_poss & possible_bits);
+		
 	}
 
 	/**
@@ -179,6 +175,28 @@ impl Box {
 		}
 	}
 
+	/**
+	 *
+	 * get_possible_bits
+	 *
+	 * Get a list of possible values as a bit mask.
+	 *
+	 */
+	fn get_possibles_bits(&self) -> u16 {
+		let mut result:u16 = 0;
+
+		for x in 1..9 {
+			if self.poss[x] {
+				result |= ON << x;
+			}
+		}
+
+		result
+	}
+
+
+
+
     /**
      * check
      * 
@@ -230,7 +248,7 @@ impl Cell {
 		// We can't just call normalise_boxes direclty as that fucntion expect an array
 		// of references to boxes instead of an array of boxes. So we have to pass
 		// in an array of refs instead.
-		normalise_boxes(&mut self.boxes);
+		normalise_boxes_array(&mut self.boxes);
 	}
 }
 
@@ -238,11 +256,11 @@ impl Cell {
 // each one based on the "solved" values already found in the array. This is run in
 // place over the array, the specific functions that use it at the Cell and whole of
 // sudoku level do the work of copying data to keep it thread safe.
-fn normalise_boxes(mut boxes: &[Box; 9]) {
+fn normalise_boxes_array(boxes: &mut [Box; 9]) {
 		// pos_vals is the bit mask of still possible values. Each soved value
 		// will zero out it's own value in the mask so as to mark it as not possible
 		// in the unsovled values in the cell.
-		let mut poss_vals:u16 = 0;
+		let mut poss_vals:u16 = 0b1111111110;
 		for x in boxes.iter() {
 			// If we have an actual value we blank out that possible value from the map
 			// otherwise ignore the uncionfirmed values.
@@ -258,12 +276,12 @@ fn normalise_boxes(mut boxes: &[Box; 9]) {
 		// Now in poss_vals we have an bitmap that represents all the values that nothing
 		// else can be. So we apply that to each of the values in the 9 array
 		// set that are still looking for a value.
-		for &mut x in boxes.iter() {
+		for unsolved_box in boxes.iter_mut() {
 			// If we have an unconfirmed values remove the possibilities foumd, otherwise
 			// for solved boxes we just skip over.
-			match x.value {
-				Some(n) => {},
-				None => x.remove_possible_bits(poss_vals)
+			match unsolved_box.value {
+				Some(_unused) => {},
+				None => unsolved_box.remove_possible_bits(poss_vals)
 			}
 		}
 }
@@ -544,7 +562,7 @@ mod tests {
 	#[test]
 	// Check that we can solve a box when there's only one value left.
 	fn test_last_value_box() {
-		let test_cell:Cell = Cell {
+		let mut test_cell:Cell = Cell {
 			boxes:[ BLANK_BOX,        Box::from_val(2), Box::from_val(3),
                     Box::from_val(4), Box::from_val(5), Box::from_val(6),		
                     Box::from_val(7), Box::from_val(8), Box::from_val(9)]
