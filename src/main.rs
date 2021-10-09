@@ -28,6 +28,18 @@ struct Box {
 const ON:u16  = 1;
 const OFF:u16 = 0;
 
+// Consts to easily get the index of a given positions in a 3x3 array that's stored
+// as an array. Implmetned as usize as they are used to lookup arrays.
+const TOP_LFT:usize = 0;
+const TOP_MID:usize = 1;
+const TOP_RHT:usize = 2;
+const MID_LFT:usize = 3;
+const MID_MID:usize = 4;
+const MID_RHT:usize = 5;
+const BOT_LFT:usize = 6;
+const BOT_MID:usize = 7;
+const BOT_RHT:usize = 8;
+
 const BLANK_BOX:Box = Box {
     value: None,
     poss: [false, true, true, true, true, true, true, true, true, true]
@@ -49,11 +61,16 @@ impl Box {
      * box_value
      *
      * Return a box of a particular value.
+	 *
+	 * Returns a blank box is passed 0. I know it seems dumb, but it made
+	 * writing up the tests easier in parts.
      */
     fn from_val(x:u8) -> Box {
         let mut result = BLANK_BOX;
-		result.set_val(x);
-    
+		if x != 0 {
+			result.set_val(x);
+		}
+   
         result
     }
 
@@ -241,6 +258,16 @@ struct Cell {
     boxes: [Box; 9]
 }
 
+impl fmt::Display for Cell {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+		formatter.write_str("[");
+		for fmt_box in self.boxes.iter() {
+            fmt_box.fmt(formatter);
+		}
+		formatter.write_str("]")
+    }
+}
+
 impl Cell {
 	// Run "normalization" which is the simplest form of solving any 9 element sudoku
 	// over this particular cell.
@@ -248,7 +275,13 @@ impl Cell {
 		// We can't just call normalise_boxes direclty as that fucntion expect an array
 		// of references to boxes instead of an array of boxes. So we have to pass
 		// in an array of refs instead.
-		normalise_boxes_array(&mut self.boxes);
+
+		let mut vec = Vec::new();
+		for x in self.boxes.iter_mut() {
+			vec.push(x);
+		}
+
+		normalise_boxes(vec);
 	}
 }
 
@@ -256,34 +289,34 @@ impl Cell {
 // each one based on the "solved" values already found in the array. This is run in
 // place over the array, the specific functions that use it at the Cell and whole of
 // sudoku level do the work of copying data to keep it thread safe.
-fn normalise_boxes_array(boxes: &mut [Box; 9]) {
-		// pos_vals is the bit mask of still possible values. Each soved value
-		// will zero out it's own value in the mask so as to mark it as not possible
-		// in the unsovled values in the cell.
-		let mut poss_vals:u16 = 0b1111111110;
-		for x in boxes.iter() {
-			// If we have an actual value we blank out that possible value from the map
-			// otherwise ignore the uncionfirmed values.
-			match x.value {
-				// mask it off against the inverse of the found value.
-				Some(confirmed_value) => {
-					poss_vals &= !( ON << confirmed_value)
-				},
-				None => ()
-			};
-		}
+fn normalise_boxes(mut boxes: Vec<&mut Box>) {
+	// pos_vals is the bit mask of still possible values. Each soved value
+	// will zero out it's own value in the mask so as to mark it as not possible
+	// in the unsovled values in the cell.
+	let mut poss_vals:u16 = 0b1111111110;
+	for x in boxes.iter() {
+		// If we have an actual value we blank out that possible value from the map
+		// otherwise ignore the uncionfirmed values.
+		match x.value {
+			// mask it off against the inverse of the found value.
+			Some(confirmed_value) => {
+				poss_vals &= !( ON << confirmed_value)
+			},
+			None => ()
+		};
+	}
 
-		// Now in poss_vals we have an bitmap that represents all the values that nothing
-		// else can be. So we apply that to each of the values in the 9 array
-		// set that are still looking for a value.
-		for unsolved_box in boxes.iter_mut() {
-			// If we have an unconfirmed values remove the possibilities foumd, otherwise
-			// for solved boxes we just skip over.
-			match unsolved_box.value {
-				Some(_unused) => {},
-				None => unsolved_box.remove_possible_bits(poss_vals)
-			}
+	// Now in poss_vals we have an bitmap that represents all the values that nothing
+	// else can be. So we apply that to each of the values in the 9 array
+	// set that are still looking for a value.
+	for unsolved_box in boxes.iter_mut() {
+		// If we have an unconfirmed values remove the possibilities foumd, otherwise
+		// for solved boxes we just skip over.
+		match unsolved_box.value {
+			Some(_unused) => {},
+			None => unsolved_box.remove_possible_bits(poss_vals)
 		}
+	}
 }
 
 #[derive(PartialEq, Debug)]
@@ -306,138 +339,320 @@ const BLANK_SUDOKU:Sudoku = Sudoku {
             BLANK_CELL, BLANK_CELL, BLANK_CELL]
 };
 
-// Consts to easily get the index of a given positions in a 3x3 array that's stored
-// as an array. Implmetned as usize as they are used to lookup arrays.
-const TOP_LFT:usize = 0;
-const TOP_MID:usize = 1;
-const TOP_RHT:usize = 2;
-const MID_LFT:usize = 3;
-const MID_MID:usize = 4;
-const MID_RHT:usize = 5;
-const BOT_LFT:usize = 6;
-const BOT_MID:usize = 7;
-const BOT_RHT:usize = 8;
+impl Sudoku {
+	/**
+     * row_mut
+	 *
+	 * Returns a horizontal row across 3 cells. Takes an input 0-8 to which row to
+	 * return.
+	 *
+	 * Returns a mutable vec of references to the cells so as to be updated by
+	 * solving functions.
+	 *
+     * This whole function is just fucked. It's way too complicated to get the
+	 * results out using iter_mut and nth functions on them across the item
+	 * and the weirdness in the function signature to set lifetimes on results
+	 * I don't entirely understand. If something breaks when we make this program
+	 * multi-threaded I'm pretty sure it will be here.
+	 */
+	fn get_row_mut<'a>(&'a mut self, row:usize) -> Vec<&'a mut Box> {
+		let mut result = Vec::new();
 
-// This function creates a sudoku from a file. I don't knwo enough rust
-// yet to have it return a more generic error so just using io::Error
-//
-// File Format taken from Simple Sudoku
-fn read_simple_sudoku(filename:String) -> Result<Sudoku, io::Error> {
-    // We expect to read a stream of numbers set out in the same
-    // way a sudo would be printed on page, with "|" and "-" marks
-    // used to break up the cells and the boxes in each cell just seperated by
-    // spaces. Empty spaces are treated as blanks.
+		// We will be iterating over 3 cells, and then 3 values
+		// from each cell. We use the input row to select the
+		// cell "offset" to get use to the right row of cells in the
+		// sudoku, and then a box offset to get us to the right row
+		// within each of those cells.
+		//
+		// Then we run a simple iteration over the cells, and then the boxes,
+		// adding the offsets each time, to add our values in.
+
+		// Divide 3 * 3 to set to either 0, 3, or 6. 	
+		let cell_offset = (row / 3) * 3;
+
+		// To find the offset within the cell mod by 3, then * 3
+		// to be either 0, 3, or 6 within cell. Remember index from 0.
+		let box_offset  = (row % 3) * 3;
+		println!("Row: {} CO: {} / BO: {}", row, cell_offset, box_offset);
+		let mut cell_iter = self.cells.iter_mut();
+
+		// Fast forward the cell iterator to the cell before the one we want
+		// to read. Only if the iterator isn't already there for 0.
+		if cell_offset > 0 {
+			cell_iter.nth(cell_offset-1).unwrap();
+		}
+
+		for x in 0..3 {
+			let cell         = cell_iter.next().unwrap();
+
+			println!("Cell {}: {}", cell_offset+x, cell);
+			let mut box_iter = cell.boxes.iter_mut();
+
+			// Fast forward to the right row of the cell if necessary
+			if box_offset > 0 {
+				box_iter.nth(box_offset-1).unwrap();
+			}
+			
+			for y in 0..3 {
+				let mut read_box = box_iter.next().unwrap();
+				println!("Reading {} / {} - {}", cell_offset+x, box_offset+y, read_box);
+				result.push(read_box);
+			}
+		}
+
+		result
+	}
+
+	/**
+     * col_mut
+	 *
+	 * Returns a vertical column across 3 cells. Takes an input 0-8 to which column to
+	 * return.
+	 *
+	 * Returns a mutable vec of references to the cells so as to be updated by
+	 * solving functions.
+	 *
+     * This whole function is just fucked. It's way too complicated to get the
+	 * results out using iter_mut and nth functions on them across the item
+	 * and the weirdness in the function signature to set lifetimes on results
+	 * I don't entirely understand. If something breaks when we make this program
+	 * multi-threaded I'm pretty sure it will be here.
+	 */
+	fn get_col_mut<'a>(&'a mut self, col:usize) -> Vec<&mut Box> {
+		assert!(col <= 8);
+
+		let mut result = Vec::new();
+
+
+		// We will be iterating over 3 cells, and then 3 values
+		// from each cell. We use the input row to select the
+		// cell "offset" to get use to the right column of cells
+		// (either 0, 1 or 2 offset) and then add 3 each time to
+		// have a pattern of 0, 3, 6 /  1, 4, 7 / 2, 5, 8.
+		//
+		// Then the same patter to get the boxes within in column.
+		//
+		// Then we run a simple iteration over the cells, and then the boxes,
+		// adding 3 each time.
+
+		let cell_offset = col / 3;
+
+		// To find the offset within the cell just mod by 3.
+		let box_offset  = col % 3;
+
+		println!("Col: {} CO: {} / BO: {}", col, cell_offset, box_offset);
+		let mut cell_iter = self.cells.iter_mut();
+
+		// Fast forward the cell iterator so the next cell it returns is the one
+		// we want (0, 1, or 2).
+		//
+		// It would be "neater" to use get_nth to get the 3rd box every time to
+		// scan 'vertically' down the array but it ends up messier code to deal
+		// with getting the first box differently each time.
+		if cell_offset > 0 {
+			cell_iter.nth(cell_offset-1).unwrap();
+		}
+
+		for x in 0..3 {
+			let cell         = cell_iter.next().unwrap();
+
+			//println!("Cell {}: {}", cell_offset+(x*3), cell);
+			let mut box_iter = cell.boxes.iter_mut();
+
+			// Again we have to "fast forward, but now within the cell to the
+			// right box.
+			if box_offset > 0 {
+				box_iter.nth(box_offset-1).unwrap();
+			}
+			
+
+			for y in 0..3 {
+				let mut read_box = box_iter.next().unwrap();
+				println!("Reading {} / {} - {}", cell_offset+x, box_offset+y, read_box);
+				result.push(read_box);
+
+				// Now we skip the next two boxes unless we were reading the last value.
+				if y <= 2 {
+					box_iter.next().unwrap();
+					box_iter.next().unwrap();
+				}
+			}
+
+			// Now we skip past the next two cells so that the start of the next loop will
+			// read the next cell "down" on the array unless we're on the last read.
+			if x <= 2 {
+				cell_iter.next().unwrap();
+				cell_iter.next().unwrap();
+			}
+		}
+
+		result
+	}
+	
+	fn get_row(&self, row:usize) -> [Box; 9] {
+		let cell_offset = (row / 3) * 3;
+		let box_offset  = (row % 3) * 3;
+		
+		println!("{} / {}", cell_offset, box_offset);
+
+		[
+			self.cells[cell_offset  ].boxes[box_offset  ],
+			self.cells[cell_offset  ].boxes[box_offset+1],
+			self.cells[cell_offset  ].boxes[box_offset+2],
+			self.cells[cell_offset+1].boxes[box_offset  ],
+			self.cells[cell_offset+1].boxes[box_offset+1],
+			self.cells[cell_offset+1].boxes[box_offset+2],
+			self.cells[cell_offset+2].boxes[box_offset  ],
+			self.cells[cell_offset+2].boxes[box_offset+1],
+			self.cells[cell_offset+2].boxes[box_offset+2]
+		]
+	}
+
+    // This function creates a sudoku from a file. I don't knwo enough rust
+    // yet to have it return a more generic error so just using io::Error
     //
-    // Like below:
-    // |.1.|012|012|
-    // |345|345|345|
-    // |678|..7|678|
-    // -------------
-    // |.12|912|912|
-    // |345|345|345|
-    // |678|678|678|
-    // -------------
-    // |.12|.12|.12|
-    // |345|345|345|
-    // |678|678|678|
-   
-    // Attempt to open the file
-    let file = fs::File::open(filename);
-    let file = match file {
-        Ok(file) => file,
-        Err(error) => panic!("Problem opening the file: {:?}", error)
-    };
-
-    let mut reader = std::io::BufReader::new(file);
-
-    // Instantiatie sudoku as blank
-    let mut sudoku = BLANK_SUDOKU;
-    // To read that stream into our more strutued 3- level tree we iterate
-    // over:
-    // 1. First over each of the 3 rows of cells in the sudoku (cur_cel_row)
-    // 2. Then over each of 3 rows of boxes insides those cells (cur_box_row)
-    //let cur_box_row = 0;
-
-    // 3. The over the 3 cells that cross the row of numbers
-    //let cur_cel_col = 0;
-
-    // 4. Then we iterate over the boxes within that particular cell
-    //let cur_box_col = 0;
-
-    // These iterations then update the current cell, and the curernt box to
-    // read the next value into.
-    let mut line = String::new();
-    for cur_cel_row in 0..3 {
-        for cur_box_row in 0..3 {
-            // Read a new line that crosses across all of the boxes.
-            let length = reader.read_line(&mut line).expect("Could not read line");
-            assert_eq!(length, 15); // Make sure there's enough data in line for all the rows
-
-            // Read charachters off from the RIGHT of the string using the pop
-            // function. So first read off the \n and tehn continue right to
-            // left.
-            assert_eq!(line.pop(), Some('\n'));
-            assert_eq!(line.pop(), Some('\r'));
-
-            // From 3 to 0 because we're going from right to left popping off end of the string.
-            for cur_cel_col in (0..3).rev() {
-                // Read off the first '|'
-                assert_eq!(line.pop(), Some('|'));
-                for cur_box_col in (0..3).rev() {
-                    let char = line.pop().expect("Expected box value, got EoL");
-
-                    // Find the index of the cel and box to write into by multipleying
-                    // row by 3. This matches our treatment of a linear 9 element array
-                    // as a 3x3 array.
-                    let cell_idx:usize = cur_cel_row * 3 + cur_cel_col;
-                    let box_idx:usize = cur_box_row * 3 + cur_box_col;
-
-                    // Initiate a new box to write into the Sudoku.
-                    let value:Box;
-
-                    // 
-                    if char == '.' {
-                        value = BLANK_BOX;
-                    } else {
-                        let digit = char.to_digit(10).expect("Expected number or '.'");
-                        assert!(digit >= 1 && digit <= 9, "Expected a number between 1 and 9");
-                        value = Box::from_val(digit as u8);
+    // File Format taken from Simple Sudoku
+    fn from_ss(filename:String) -> Result<Sudoku, io::Error> {
+        // We expect to read a stream of numbers set out in the same
+        // way a sudo would be printed on page, with "|" and "-" marks
+        // used to break up the cells and the boxes in each cell just seperated by
+        // spaces. Empty spaces are treated as blanks.
+        //
+        // Like below:
+        // |.1.|012|012|
+        // |345|345|345|
+        // |678|..7|678|
+        // -------------
+        // |.12|912|912|
+        // |345|345|345|
+        // |678|678|678|
+        // -------------
+        // |.12|.12|.12|
+        // |345|345|345|
+        // |678|678|678|
+       
+        // Attempt to open the file
+        let file = fs::File::open(filename);
+        let file = match file {
+            Ok(file) => file,
+            Err(error) => panic!("Problem opening the file: {:?}", error)
+        };
+    
+        let mut reader = std::io::BufReader::new(file);
+    
+        // Instantiatie sudoku as blank
+        let mut sudoku = BLANK_SUDOKU;
+        // To read that stream into our more strutued 3- level tree we iterate
+        // over:
+        // 1. First over each of the 3 rows of cells in the sudoku (cur_cel_row)
+        // 2. Then over each of 3 rows of boxes insides those cells (cur_box_row)
+        //let cur_box_row = 0;
+    
+        // 3. The over the 3 cells that cross the row of numbers
+        //let cur_cel_col = 0;
+    
+        // 4. Then we iterate over the boxes within that particular cell
+        //let cur_box_col = 0;
+    
+        // These iterations then update the current cell, and the curernt box to
+        // read the next value into.
+        let mut line = String::new();
+        for cur_cel_row in 0..3 {
+            for cur_box_row in 0..3 {
+                // Read a new line that crosses across all of the boxes.
+                let length = reader.read_line(&mut line).expect("Could not read line");
+                assert_eq!(length, 15); // Make sure there's enough data in line for all the rows
+    
+                // Read charachters off from the RIGHT of the string using the pop
+                // function. So first read off the \n and tehn continue right to
+                // left.
+                assert_eq!(line.pop(), Some('\n'));
+                assert_eq!(line.pop(), Some('\r'));
+    
+                // From 3 to 0 because we're going from right to left popping off end of the string.
+                for cur_cel_col in (0..3).rev() {
+                    // Read off the first '|'
+                    assert_eq!(line.pop(), Some('|'));
+                    for cur_box_col in (0..3).rev() {
+                        let char = line.pop().expect("Expected box value, got EoL");
+    
+                        // Find the index of the cel and box to write into by multipleying
+                        // row by 3. This matches our treatment of a linear 9 element array
+                        // as a 3x3 array.
+                        let cell_idx:usize = cur_cel_row * 3 + cur_cel_col;
+                        let box_idx:usize = cur_box_row * 3 + cur_box_col;
+    
+                        // Initiate a new box to write into the Sudoku.
+                        let value:Box;
+    
+                        // 
+                        if char == '.' {
+                            value = BLANK_BOX;
+                        } else {
+                            let digit = char.to_digit(10).expect("Expected number or '.'");
+                            assert!(digit >= 1 && digit <= 9, "Expected a number between 1 and 9");
+                            value = Box::from_val(digit as u8);
+                        }
+                        // To convert row and col to an index just times
+                        // the row by 3. This matches our structure of a 9 element
+                        // linear array represeting a 3x3 array
+                        sudoku.
+                            cells[cell_idx].
+                            boxes[box_idx] = value;
                     }
-                    // To convert row and col to an index just times
-                    // the row by 3. This matches our structure of a 9 element
-                    // linear array represeting a 3x3 array
-                    sudoku.
-                        cells[cell_idx].
-                        boxes[box_idx] = value;
                 }
+                line.clear();
             }
+            // Check for a row of plain "---------" and read to the next line.
+            // But if there's no lines left that's OK if we just read cell row 3
+            reader.read_line(&mut line).expect("Could not read line.");
             line.clear();
         }
-        // Check for a row of plain "---------" and read to the next line.
-        // But if there's no lines left that's OK if we just read cell row 3
-        reader.read_line(&mut line).expect("Could not read line.");
-        line.clear();
+    
+        return Ok(sudoku);
+    }
+    
+    fn print_ss(&self) {
+        println!("-----------");
+        for cur_cel_row in 0..3 {
+            
+			for cur_box_row in 0..3 {
+                println!("{}{}{}|{}{}{}|{}{}{}",
+                         self.cells[cur_cel_row*3  ].boxes[cur_box_row*3  ],
+                         self.cells[cur_cel_row*3  ].boxes[cur_box_row*3+1],
+                         self.cells[cur_cel_row*3  ].boxes[cur_box_row*3+2],
+                         self.cells[cur_cel_row*3+1].boxes[cur_box_row*3  ],
+                         self.cells[cur_cel_row*3+1].boxes[cur_box_row*3+1],
+                         self.cells[cur_cel_row*3+1].boxes[cur_box_row*3+2],
+                         self.cells[cur_cel_row*3+2].boxes[cur_box_row*3  ],
+                         self.cells[cur_cel_row*3+2].boxes[cur_box_row*3+1],
+                         self.cells[cur_cel_row*3+2].boxes[cur_box_row*3+2]);
+             }
+             println!("-----------");
+        }
     }
 
-    return Ok(sudoku);
-}
+	/**
+	 *
+	 * solve
+	 *
+	 * Normalise the whole sudoku, resolving each cell, row and column until
+	 * a whole round has gone through with no changes to the sudoku.
+	 */
+	fn solve(&mut self) {
+	 	for cell in self.cells.iter_mut() {
+			cell.normalise()
+		}
 
-fn write_simple_sudoku(sudoku:Sudoku) {
-    println!("-----------");
-    for cur_cel_row in 0..3 {
-        for cur_box_row in 0..3 {
-            println!("{}{}{}|{}{}{}|{}{}{}",
-                     sudoku.cells[cur_cel_row*3  ].boxes[cur_box_row*3  ],
-                     sudoku.cells[cur_cel_row*3  ].boxes[cur_box_row*3+1],
-                     sudoku.cells[cur_cel_row*3  ].boxes[cur_box_row*3+2],
-                     sudoku.cells[cur_cel_row*3+1].boxes[cur_box_row*3  ],
-                     sudoku.cells[cur_cel_row*3+1].boxes[cur_box_row*3+1],
-                     sudoku.cells[cur_cel_row*3+1].boxes[cur_box_row*3+2],
-                     sudoku.cells[cur_cel_row*3+2].boxes[cur_box_row*3  ],
-                     sudoku.cells[cur_cel_row*3+2].boxes[cur_box_row*3+1],
-                     sudoku.cells[cur_cel_row*3+2].boxes[cur_box_row*3+2]);
-         }
-         println!("-----------");
+		for i in 0..9 {
+			let mut row = self.get_row_mut(i);
+			normalise_boxes(row);
+		}
+
+		for i in 0..9 {
+			let mut col = self.get_col_mut(i);
+			normalise_boxes(col);
+		}
     }
 }
 
@@ -456,7 +671,7 @@ mod tests {
         // Test that reading and writing a sudoku works.
         // We test this by reading a sudoku from a test file, then writing out it back and and
         // ensuring the two values are the same.
-        let result = read_simple_sudoku("test/blank.ss".to_string()).unwrap();
+        let result = Sudoku::from_ss("test/blank.ss".to_string()).unwrap();
         assert_eq!(result, BLANK_SUDOKU);
     }
 
@@ -465,7 +680,7 @@ mod tests {
         // Test that reading and writing a sudoku works.
         // We test this by reading a sudoku from a test file, then writing out it back and and
         // ensuring the two values are the same.
-        let result = read_simple_sudoku("test/sparse.ss".to_string()).unwrap();
+        let result = Sudoku::from_ss("test/sparse.ss".to_string()).unwrap();
         assert_eq!(result.cells[TOP_LFT].boxes[TOP_MID].value, Some(1));
         assert_eq!(result.cells[TOP_LFT].boxes[MID_MID].value, Some(2));
         assert_eq!(result.cells[TOP_LFT].boxes[BOT_MID].value, Some(3));
@@ -478,7 +693,7 @@ mod tests {
         assert_eq!(result.cells[BOT_RHT].boxes[MID_MID].value, Some(2));
         assert_eq!(result.cells[BOT_RHT].boxes[BOT_MID].value, Some(3));
 
-        write_simple_sudoku(result);
+        result.print_ss();
     }
 
 	#[test]
@@ -573,4 +788,208 @@ mod tests {
 		assert!(test_cell.boxes[TOP_LFT].value == Some(1));
 	}
 
+	#[test]
+	// Check that we can run a normalisation over 9 boxes that may not all
+	// come from the same sudoku cell.
+	fn test_last_value_line() {
+		let mut line = Vec::new();
+
+		let mut box1 = BLANK_BOX;
+		let mut box2 = Box::from_val(2);
+		let mut box3 = Box::from_val(3);
+		let mut box4 = Box::from_val(4);
+		let mut box5 = Box::from_val(5);
+		let mut box6 = Box::from_val(6);
+		let mut box7 = Box::from_val(7);
+		let mut box8 = Box::from_val(8);
+		let mut box9 = Box::from_val(9);
+
+		line.push(&mut box1);
+		line.push(&mut box2);
+		line.push(&mut box3);
+		line.push(&mut box4);
+		line.push(&mut box5);
+		line.push(&mut box6);
+		line.push(&mut box7);
+		line.push(&mut box8);
+		line.push(&mut box9);
+
+		// When we normalise a line from a random selection of boxes that are
+		// interconnected we pass in reference to the 9 elements and they are modified
+		// in place.
+		normalise_boxes(line);
+
+		assert!(box1.value == Some(1));
+	}
+
+	#[test]
+	fn test_row_read_mut() {
+		let mut sudoku = Sudoku::from_ss("test/simple.ss".to_string()).unwrap();
+
+		{
+		    let row1 = sudoku.get_row_mut(0);
+		    assert_eq!(*row1[0], Box::from_val(0));
+		    assert_eq!(*row1[1], Box::from_val(0));
+		    assert_eq!(*row1[2], Box::from_val(0));
+		    assert_eq!(*row1[3], Box::from_val(2));
+		    assert_eq!(*row1[4], Box::from_val(6));
+		    assert_eq!(*row1[5], Box::from_val(0));
+		    assert_eq!(*row1[6], Box::from_val(7));
+		    assert_eq!(*row1[7], Box::from_val(0));
+		    assert_eq!(*row1[8], Box::from_val(1));
+		}
+
+		{
+			let mut row3 = sudoku.get_row_mut(3);
+			assert_eq!(*row3[0], Box::from_val(8));
+			assert_eq!(*row3[1], Box::from_val(2));
+			assert_eq!(*row3[2], BLANK_BOX);
+			assert_eq!(*row3[3], Box::from_val(1));
+			assert_eq!(*row3[4], BLANK_BOX);
+			assert_eq!(*row3[5], BLANK_BOX);
+			assert_eq!(*row3[6], BLANK_BOX);
+			assert_eq!(*row3[7], Box::from_val(4));
+			assert_eq!(*row3[8], BLANK_BOX);
+	
+			// Checked later at end of test
+			*row3[4] = Box::from_val(4);
+		}
+		{
+		    let mut row7 = sudoku.get_row_mut(7);
+		    assert_eq!(*row7[0], Box::from_val(0));
+		    assert_eq!(*row7[1], Box::from_val(4));
+		    assert_eq!(*row7[2], Box::from_val(0));
+		    assert_eq!(*row7[3], Box::from_val(0));
+		    assert_eq!(*row7[4], Box::from_val(5));
+		    assert_eq!(*row7[5], Box::from_val(0));
+			assert_eq!(*row7[6], Box::from_val(0));
+			assert_eq!(*row7[7], Box::from_val(3));
+			assert_eq!(*row7[8], Box::from_val(6));
+
+			// Checked later at end of test
+			*row7[8] = Box::from_val(2);
+		}
+
+		// Now check that we can update values using these calls.
+		assert_eq!(sudoku.cells[BOT_RHT].boxes[MID_RHT].value, Some(2));
+
+		assert_eq!(sudoku.cells[BOT_RHT].boxes[MID_RHT].value, Some(2));
+	}
+
+	#[test]
+	fn test_col_read_mut() {
+		let mut sudoku = Sudoku::from_ss("test/simple.ss".to_string()).unwrap();
+
+		{
+		    let col1 = sudoku.get_col_mut(0);
+		    assert_eq!(*col1[0], Box::from_val(0));
+		    assert_eq!(*col1[1], Box::from_val(6));
+		    assert_eq!(*col1[2], Box::from_val(1));
+		    assert_eq!(*col1[3], Box::from_val(8));
+		    assert_eq!(*col1[4], Box::from_val(0));
+		    assert_eq!(*col1[5], Box::from_val(0));
+		    assert_eq!(*col1[6], Box::from_val(0));
+		    assert_eq!(*col1[7], Box::from_val(0));
+		    assert_eq!(*col1[8], Box::from_val(7));
+		}
+
+		{
+			let mut col3 = sudoku.get_col_mut(3);
+			assert_eq!(*col3[0], Box::from_val(0));
+			assert_eq!(*col3[1], Box::from_val(7));
+			assert_eq!(*col3[2], Box::from_val(0));
+			assert_eq!(*col3[3], Box::from_val(1));
+			assert_eq!(*col3[4], Box::from_val(4));
+			assert_eq!(*col3[5], Box::from_val(4));
+			assert_eq!(*col3[6], Box::from_val(4));
+			assert_eq!(*col3[7], Box::from_val(4));
+			assert_eq!(*col3[8], Box::from_val(4));
+	
+			// Checked later at end of test
+			*col3[4] = Box::from_val(4);
+		}
+		{
+		    let mut col7 = sudoku.get_col_mut(7);
+		    assert_eq!(*col7[0], Box::from_val(0));
+		    assert_eq!(*col7[1], Box::from_val(4));
+		    assert_eq!(*col7[2], Box::from_val(0));
+		    assert_eq!(*col7[3], Box::from_val(0));
+		    assert_eq!(*col7[4], Box::from_val(5));
+		    assert_eq!(*col7[5], Box::from_val(0));
+			assert_eq!(*col7[6], Box::from_val(0));
+			assert_eq!(*col7[7], Box::from_val(3));
+			assert_eq!(*col7[8], Box::from_val(6));
+
+			// Checked later at end of test
+			*col7[8] = Box::from_val(2);
+		}
+
+		// Now check that we can update values using these calls.
+		assert_eq!(sudoku.cells[BOT_RHT].boxes[MID_RHT].value, Some(2));
+
+		assert_eq!(sudoku.cells[BOT_RHT].boxes[MID_RHT].value, Some(2));
+	}
+
+	#[test]
+	fn test_row_read() { 
+		let sudoku = Sudoku::from_ss("test/simple.ss".to_string()).unwrap();
+
+		let row1 = sudoku.get_row(0);
+		assert_eq!(row1[0], Box::from_val(0));
+		assert_eq!(row1[1], Box::from_val(0));
+		assert_eq!(row1[2], Box::from_val(0));
+		assert_eq!(row1[3], Box::from_val(2));
+		assert_eq!(row1[4], Box::from_val(6));
+		assert_eq!(row1[5], Box::from_val(0));
+		assert_eq!(row1[6], Box::from_val(7));
+		assert_eq!(row1[7], Box::from_val(0));
+		assert_eq!(row1[8], Box::from_val(1));
+
+		let row3 = sudoku.get_row(3);
+		assert_eq!(row3[0], Box::from_val(8));
+		assert_eq!(row3[1], Box::from_val(2));
+		assert_eq!(row3[2], BLANK_BOX);
+		assert_eq!(row3[3], Box::from_val(1));
+		assert_eq!(row3[4], BLANK_BOX);
+		assert_eq!(row3[5], BLANK_BOX);
+		assert_eq!(row3[6], BLANK_BOX);
+		assert_eq!(row3[7], Box::from_val(4));
+		assert_eq!(row3[8], BLANK_BOX);
+
+		let row7 = sudoku.get_row(7);
+		assert_eq!(row7[0], Box::from_val(0));
+		assert_eq!(row7[1], Box::from_val(4));
+		assert_eq!(row7[2], Box::from_val(0));
+		assert_eq!(row7[3], Box::from_val(0));
+		assert_eq!(row7[4], Box::from_val(5));
+		assert_eq!(row7[5], Box::from_val(0));
+		assert_eq!(row7[6], Box::from_val(0));
+		assert_eq!(row7[7], Box::from_val(3));
+	}
+
+	#[test]
+	fn test_row_solve() {
+		let mut sudoku = Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
+
+		let mut row = sudoku.get_row_mut(0);
+		normalise_boxes(row);
+		assert_eq!(sudoku.cells[TOP_LFT].boxes[TOP_LFT], Box::from_val(1));
+	}
+
+	#[test]
+	fn test_sudoku_solve() {
+		let mut sudoku = Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
+
+		sudoku.solve();
+
+		// Check that the top left most box got solved as it's the last in the row
+		assert_eq!(sudoku.cells[TOP_LFT].boxes[TOP_LFT], Box::from_val(1));
+
+		// Check that the center box got solved as it's the last in the column
+		assert_eq!(sudoku.cells[MID_MID].boxes[MID_MID], Box::from_val(1));
+
+		// Check that the bot right most box got solved as it's the last in the column
+		assert_eq!(sudoku.cells[BOT_RHT].boxes[BOT_RHT], Box::from_val(1));
+
+	}
 }
