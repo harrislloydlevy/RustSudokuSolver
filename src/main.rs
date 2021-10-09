@@ -260,9 +260,9 @@ struct Cell {
 
 impl fmt::Display for Cell {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-		formatter.write_str("[");
+		formatter.write_str("[").unwrap();
 		for fmt_box in self.boxes.iter() {
-            fmt_box.fmt(formatter);
+            fmt_box.fmt(formatter).unwrap();
 		}
 		formatter.write_str("]")
     }
@@ -285,14 +285,24 @@ impl Cell {
 	}
 }
 
-// This function runs over an array of 9 boxes and adjust the possible values of
-// each one based on the "solved" values already found in the array. This is run in
-// place over the array, the specific functions that use it at the Cell and whole of
-// sudoku level do the work of copying data to keep it thread safe.
+/**
+ * normalise_boxes
+ *
+ * This is the dumbest solving algorithim there is.
+ * 
+ * It looks over a list of 9
+ * boxes and for any boxes that are solved, it removes the solved boxes from
+ * thee list of possible for the other boxes. If one of the boxes now only
+ * has a single possible value then it's set as solved to that value.
+ */
 fn normalise_boxes(mut boxes: Vec<&mut Box>) {
-	// pos_vals is the bit mask of still possible values. Each soved value
-	// will zero out it's own value in the mask so as to mark it as not possible
-	// in the unsovled values in the cell.
+	// pos_vals is the bit mask of still possible values in this set of interlinked
+	// boxes.
+	//
+	// Each soved valuewill zero out it's own value in the mask so as to mark it as
+	// not possible in the unsovled values in the cell.
+	//
+	// We 
 	let mut poss_vals:u16 = 0b1111111110;
 	for x in boxes.iter() {
 		// If we have an actual value we blank out that possible value from the map
@@ -394,7 +404,7 @@ impl Sudoku {
 			}
 			
 			for y in 0..3 {
-				let mut read_box = box_iter.next().unwrap();
+				let read_box = box_iter.next().unwrap();
 				println!("Reading {} / {} - {}", cell_offset+x, box_offset+y, read_box);
 				result.push(read_box);
 			}
@@ -467,7 +477,7 @@ impl Sudoku {
 			
 
 			for y in 0..3 {
-				let mut read_box = box_iter.next().unwrap();
+				let read_box = box_iter.next().unwrap();
 				println!("Reading {} / {} - {}", cell_offset+x, box_offset+y, read_box);
 				result.push(read_box);
 
@@ -645,12 +655,14 @@ impl Sudoku {
 		}
 
 		for i in 0..9 {
-			let mut row = self.get_row_mut(i);
+			// How does this not need a mut???
+			let row = self.get_row_mut(i);
 			normalise_boxes(row);
 		}
 
 		for i in 0..9 {
-			let mut col = self.get_col_mut(i);
+			// How does this not need a mut???
+			let col = self.get_col_mut(i);
 			normalise_boxes(col);
 		}
     }
@@ -766,8 +778,10 @@ mod tests {
 			[false, true, false, false, true, false, false, true, false, false]);
 
 		// Now we do the same but with a bit pattern.
-		let bit_pattern:u16 = ON << 1 | ON << 4 | ON <<7;
+		let bit_pattern:u16 = ON << 1 | OFF << 2 | ON << 4 | ON <<7;
 		let setter = Box::from_possibles_bits(bit_pattern);
+
+		assert_eq!(bit_pattern, setter.get_possibles_bits());
 
 		assert!(setter.poss ==
 			[false, true, false, false, true, false, false, true, false, false]);
@@ -827,7 +841,8 @@ mod tests {
 		let mut sudoku = Sudoku::from_ss("test/simple.ss".to_string()).unwrap();
 
 		{
-		    let row1 = sudoku.get_row_mut(0);
+		    let mut row1 = sudoku.get_row_mut(0);
+
 		    assert_eq!(*row1[0], Box::from_val(0));
 		    assert_eq!(*row1[1], Box::from_val(0));
 		    assert_eq!(*row1[2], Box::from_val(0));
@@ -837,6 +852,10 @@ mod tests {
 		    assert_eq!(*row1[6], Box::from_val(7));
 		    assert_eq!(*row1[7], Box::from_val(0));
 		    assert_eq!(*row1[8], Box::from_val(1));
+			
+			// Check updating works at end of test.
+			// This is the top_right box of the top right cell
+			*row1[8] = Box::from_val(9);
 		}
 
 		{
@@ -852,7 +871,8 @@ mod tests {
 			assert_eq!(*row3[8], BLANK_BOX);
 	
 			// Checked later at end of test
-			*row3[4] = Box::from_val(4);
+			// This is the top_mid box of the middle cell
+			*row3[3] = Box::from_val(4);
 		}
 		{
 		    let mut row7 = sudoku.get_row_mut(7);
@@ -870,9 +890,8 @@ mod tests {
 			*row7[8] = Box::from_val(2);
 		}
 
-		// Now check that we can update values using these calls.
-		assert_eq!(sudoku.cells[BOT_RHT].boxes[MID_RHT].value, Some(2));
-
+		assert_eq!(sudoku.cells[TOP_RHT].boxes[TOP_RHT].value, Some(9));
+		assert_eq!(sudoku.cells[MID_MID].boxes[TOP_LFT].value, Some(4));
 		assert_eq!(sudoku.cells[BOT_RHT].boxes[MID_RHT].value, Some(2));
 	}
 
@@ -881,7 +900,7 @@ mod tests {
 		let mut sudoku = Sudoku::from_ss("test/simple.ss".to_string()).unwrap();
 
 		{
-		    let col1 = sudoku.get_col_mut(0);
+		    let mut col1 = sudoku.get_col_mut(0);
 		    assert_eq!(*col1[0], Box::from_val(0));
 		    assert_eq!(*col1[1], Box::from_val(6));
 		    assert_eq!(*col1[2], Box::from_val(1));
@@ -891,6 +910,10 @@ mod tests {
 		    assert_eq!(*col1[6], Box::from_val(0));
 		    assert_eq!(*col1[7], Box::from_val(0));
 		    assert_eq!(*col1[8], Box::from_val(7));
+
+			// Set this to test it later.
+			// THis is Bottom left box of the top left cell
+			*col1[2] = Box::from_val(9);
 		}
 
 		{
@@ -928,8 +951,8 @@ mod tests {
 		}
 
 		// Now check that we can update values using these calls.
+		assert_eq!(sudoku.cells[TOP_LFT].boxes[BOT_LFT].value, Some(9));
 		assert_eq!(sudoku.cells[MID_MID].boxes[MID_LFT].value, Some(3));
-
 		assert_eq!(sudoku.cells[BOT_RHT].boxes[BOT_MID].value, Some(2));
 	}
 
@@ -974,7 +997,8 @@ mod tests {
 	fn test_row_solve() {
 		let mut sudoku = Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
 
-		let mut row = sudoku.get_row_mut(0);
+		// How does this not need a mut???
+		let row = sudoku.get_row_mut(0);
 		normalise_boxes(row);
 		assert_eq!(sudoku.cells[TOP_LFT].boxes[TOP_LFT], Box::from_val(1));
 	}
