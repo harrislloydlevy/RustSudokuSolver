@@ -472,7 +472,7 @@ impl Sudoku {
 				result.push(read_box);
 
 				// Now we skip the next two boxes unless we were reading the last value.
-				if y <= 2 {
+				if y < 2 {
 					box_iter.next().unwrap();
 					box_iter.next().unwrap();
 				}
@@ -480,7 +480,7 @@ impl Sudoku {
 
 			// Now we skip past the next two cells so that the start of the next loop will
 			// read the next cell "down" on the array unless we're on the last read.
-			if x <= 2 {
+			if x < 2 {
 				cell_iter.next().unwrap();
 				cell_iter.next().unwrap();
 			}
@@ -895,39 +895,42 @@ mod tests {
 
 		{
 			let mut col3 = sudoku.get_col_mut(3);
-			assert_eq!(*col3[0], Box::from_val(0));
-			assert_eq!(*col3[1], Box::from_val(7));
+			assert_eq!(*col3[0], Box::from_val(2));
+			assert_eq!(*col3[1], Box::from_val(0));
 			assert_eq!(*col3[2], Box::from_val(0));
 			assert_eq!(*col3[3], Box::from_val(1));
-			assert_eq!(*col3[4], Box::from_val(4));
-			assert_eq!(*col3[5], Box::from_val(4));
-			assert_eq!(*col3[6], Box::from_val(4));
-			assert_eq!(*col3[7], Box::from_val(4));
-			assert_eq!(*col3[8], Box::from_val(4));
+			assert_eq!(*col3[4], Box::from_val(6));
+			assert_eq!(*col3[5], Box::from_val(0));
+			assert_eq!(*col3[6], Box::from_val(3));
+			assert_eq!(*col3[7], Box::from_val(0));
+			assert_eq!(*col3[8], Box::from_val(0));
 	
 			// Checked later at end of test
-			*col3[4] = Box::from_val(4);
+			// This is the mid-left box of the centre cell.
+			*col3[4] = Box::from_val(3);
 		}
+
 		{
 		    let mut col7 = sudoku.get_col_mut(7);
 		    assert_eq!(*col7[0], Box::from_val(0));
-		    assert_eq!(*col7[1], Box::from_val(4));
+		    assert_eq!(*col7[1], Box::from_val(9));
 		    assert_eq!(*col7[2], Box::from_val(0));
-		    assert_eq!(*col7[3], Box::from_val(0));
-		    assert_eq!(*col7[4], Box::from_val(5));
-		    assert_eq!(*col7[5], Box::from_val(0));
-			assert_eq!(*col7[6], Box::from_val(0));
+		    assert_eq!(*col7[3], Box::from_val(4));
+		    assert_eq!(*col7[4], Box::from_val(0));
+		    assert_eq!(*col7[5], Box::from_val(2));
+			assert_eq!(*col7[6], Box::from_val(7));
 			assert_eq!(*col7[7], Box::from_val(3));
-			assert_eq!(*col7[8], Box::from_val(6));
+			assert_eq!(*col7[8], Box::from_val(0));
 
 			// Checked later at end of test
+			// This is mid bottom call of the bottom right cell
 			*col7[8] = Box::from_val(2);
 		}
 
 		// Now check that we can update values using these calls.
-		assert_eq!(sudoku.cells[BOT_RHT].boxes[MID_RHT].value, Some(2));
+		assert_eq!(sudoku.cells[MID_MID].boxes[MID_LFT].value, Some(3));
 
-		assert_eq!(sudoku.cells[BOT_RHT].boxes[MID_RHT].value, Some(2));
+		assert_eq!(sudoku.cells[BOT_RHT].boxes[BOT_MID].value, Some(2));
 	}
 
 	#[test]
