@@ -1,3 +1,12 @@
+// TODO: Refactor out each 'class' to own file
+// TODO: Move each solving function out to it's own library and make each generic signature
+// TODO: Add new solving function where if 'x' boxes all can _only_ be the same 'x' values then
+//       any other boxes in their row/cell can't be those values
+// TODO: Conitinual solving over the sudoku trying new solving fucntions until done/stuck
+// TODO: 'reduce' fucntuon to merge two sudokus of possibles and solving as 'map' function
+//
+
+
 use std::fs;
 use std::io;
 use std::fmt;
