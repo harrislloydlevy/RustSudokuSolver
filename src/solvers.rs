@@ -57,6 +57,7 @@ pub fn normalise_boxes(mut boxes: Vec<&mut Box>) {
  * options. This also applies for groups of 3 or 4.
  *
  * Groups of 5 or 6 are possible, but so rare and computationally expensive we don't bother. 
+ */
 pub fn only_options(mut boxes: Vec<&mut Box>) {
   /*
    * The logic we will follow for this function is as follows:
@@ -68,22 +69,26 @@ pub fn only_options(mut boxes: Vec<&mut Box>) {
    * 
    * For convenience of checkign we'll primarially use bit patterns, and arrays of bit patterns.
    */
+
+  let bit_patterns = combo(&[1,2,3,4,5,6,7,8,9], 2);
+
+  assert!(boxes.len() == 9);
+
+  for pattern in bit_patterns.iter() {
+	// Get all the boxes in our input that match that bit pattern exactly.
+    let matches = boxes.iter().filter(|x| x.get_possibles_bits() == *pattern).count();
+
+	// If there are exactly as many as  we are looking for (hardcoded to 4 right now)
+	// then remove this bit pattern as a possibility from all other boxes in the collection.
+	if matches == 2 {
+	  // Find the boxes that didn't match the pattern exactly.
+      println!("Removing {:b} from {:?}", pattern, boxes);
+	  boxes.iter_mut()
+        .filter(|x| x.get_possibles_bits() != *pattern)
+        .for_each(|x| x.remove_impossible_bits(*pattern));
+	}
+  }
 }
- */
-
-
-/**
- * For a given count of combinations provide an array of bit patterns that represent every
- * combination of that number of values.
-fn combinations_maps(factors:u16) -> Vec<u16> {
-   assert!(factors > 1);
-   assert!(factors < 4);
-
-   let result = Vec::new();
-
-   result	
-}
- */
 
 /**
  * More generic combinations function used in combinations_maps that calls itself recursively
@@ -126,6 +131,7 @@ fn combo(pool: &[u16], k:u16) -> Vec<u16> {
       // numbers above.
       //
       // I FUCKING LOVE RECURSION!
+      println!("FInd subresults starting with {} from {} for {}", i, pool.len(), k);
       let subresults = combo(&pool[i+1..],k-1);
 
       for element in subresults {
@@ -207,5 +213,34 @@ mod tests {
 		// Not checking everyone. There are 126 possible combinations of 4 objects from
         // a pool of 9 so justt check that.
 		assert_eq!(result.len(), 126);
+	}
+
+	#[test]
+	fn test_box_simplification() {
+      let mut line = Vec::new();
+
+      let mut box1 = BLANK_BOX;
+      let mut box2 = Box::from_possibles([1, 2].to_vec());
+      let mut box3 = Box::from_possibles([1, 2].to_vec());
+      let mut box4 = Box::from_possibles([1, 2, 3, 4].to_vec());
+      let mut box5 = Box::from_possibles([1, 2, 3, 4].to_vec());
+      let mut box6 = Box::from_possibles([1, 2, 3, 4].to_vec());
+      let mut box7 = Box::from_possibles([1, 2, 3, 4].to_vec());
+      let mut box8 = Box::from_possibles([1, 2, 3, 4].to_vec());
+      let mut box9 = Box::from_possibles([1, 2, 3, 4].to_vec());
+    
+      line.push(&mut box1);
+      line.push(&mut box2);
+      line.push(&mut box3);
+      line.push(&mut box4);
+      line.push(&mut box5);
+      line.push(&mut box6);
+      line.push(&mut box7);
+      line.push(&mut box8);
+      line.push(&mut box9);
+
+      only_options(line);
+
+      assert_eq!(box4.get_possibles(),[3, 4]);
 	}
 }

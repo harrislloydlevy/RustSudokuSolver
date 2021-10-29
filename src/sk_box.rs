@@ -1,6 +1,8 @@
 use std::fmt;
 use crate::constants::*;
 
+// TODO: Change the from_possibles fucntions to use slices instead of vecs.
+
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Box {
     pub value: Option<u8>,
@@ -70,13 +72,26 @@ impl Box {
 	 * Based on a bitmap further restrict the box removing any values not makred as possible
 	 * This doesn't add any new possibilities if they are possible in the map, just removes.
 	 *
-	 * Useful when an algorithim has shown values as not possible, but doesn't say anything
-	 * about whic ones are possible
+	 * Useful when an algorithim has flagged a set of values as the only possible ones, but
+     * if some of the "possible" bits have already been remove don't add them.
+	 * 
 	 */ 
 	pub fn remove_possible_bits(&mut self, possible_bits:u16) {
 		let curr_poss = self.get_possibles_bits();
 		self.set_possibles_bits(curr_poss & possible_bits);
-		
+	}
+
+	/**
+	 * remove_impossible_bits
+	 *
+	 * Based on a bitmap further restrict the box removing any values makred as impossible
+	 * This doesn't add any new possibilities if they are possible in the map, just removes.
+	 *
+	 * Useful when an algorithim has flagged a set of values as not being possible so remove them
+	 */ 
+	pub fn remove_impossible_bits(&mut self, impossible_bits:u16) {
+		let curr_poss = self.get_possibles_bits();
+		self.set_possibles_bits(curr_poss & !impossible_bits);
 	}
 
 	/**
@@ -161,6 +176,22 @@ impl Box {
 	}
 
 	/**
+     * get_possibles
+     *
+     * Get a list of the possilbe values of this box
+     */
+    pub fn get_possibles(&self) -> Vec<u16> {
+      let mut result = Vec::new();
+      for x in 1..9 {
+        if self.poss[x] {
+          result.push(x as u16);
+        }
+      }
+
+      result
+    }
+
+	/**
 	 *
 	 * get_possible_bits
 	 *
@@ -178,9 +209,6 @@ impl Box {
 
 		result
 	}
-
-
-
 
     /**
      * check
