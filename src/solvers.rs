@@ -44,7 +44,7 @@ pub fn normalise_boxes(mut boxes: Vec<&mut Box>) {
 		}
 	}
 }
-
+ 
 /**
  * only_options
  *
@@ -69,24 +69,34 @@ pub fn only_options(mut boxes: Vec<&mut Box>) {
    * 
    * For convenience of checkign we'll primarially use bit patterns, and arrays of bit patterns.
    */
-
-  let bit_patterns = combo(&[1,2,3,4,5,6,7,8,9], 2);
-
   assert!(boxes.len() == 9);
 
-  for pattern in bit_patterns.iter() {
-	// Get all the boxes in our input that match that bit pattern exactly.
-    let matches = boxes.iter().filter(|x| x.get_possibles_bits() == *pattern).count();
+  for factors in vec![2, 3, 4, 5] {
+    let bit_patterns = combo(&[1,2,3,4,5,6,7,8,9], factors);
 
-	// If there are exactly as many as  we are looking for (hardcoded to 4 right now)
-	// then remove this bit pattern as a possibility from all other boxes in the collection.
-	if matches == 2 {
-	  // Find the boxes that didn't match the pattern exactly.
-      println!("Removing {:b} from {:?}", pattern, boxes);
-	  boxes.iter_mut()
-        .filter(|x| x.get_possibles_bits() != *pattern)
-        .for_each(|x| x.remove_impossible_bits(*pattern));
-	}
+    for pattern in bit_patterns.iter() {
+  	  // Get all the boxes in our input that match that bit pattern exactly.
+      let matches = boxes.iter().filter(|x| x.get_possibles_bits() == *pattern).count() as u16;
+ 
+      // If we every find more matches than there are facotrs something has gone *very*
+      // wrong upstream. It would mean N boxes are vyiung for N+1 values which isn't right. 
+      println!("Matches: {} / Factors: {} / Pattern: {:b} in {:?}", matches, factors, *pattern, boxes);
+
+      boxes.iter()
+        .filter(|x| x.get_possibles_bits() == *pattern)
+        .for_each(|x| println!("{:?} matches {:#010b}", x, pattern));
+      assert!(matches <=factors);
+      
+      // If there are exactly as many as  we are looking for (hardcoded to 4 right now)
+      //then remove this bit pattern as a possibility from all other boxes in the collection.
+  	  if matches == factors {
+  	    // Find the boxes that didn't match the pattern exactly.
+        println!("Removing {:#010b} from {:?}", pattern, boxes);
+  	    boxes.iter_mut()
+          .filter(|x| x.get_possibles_bits() != *pattern)
+          .for_each(|x| x.remove_impossible_bits(*pattern));
+  	  }
+    }
   }
 }
 
@@ -102,16 +112,16 @@ pub fn only_options(mut boxes: Vec<&mut Box>) {
  *          e.g. 000011 would mean a combination of 1 and 2, 1011, a combiantions of 4, 2, and 1, 100001 = 6 and 1. 
  */
 fn combo(pool: &[u16], k:u16) -> Vec<u16> {
-  println!("{:?} for {}", pool, k);
+  //println!("{:?} for {}", pool, k);
   let mut result = Vec::new();
 
   if k > (pool.len() as u16) {
-    println!("{} < {} - Terminating", k, pool.len());
+    //println!("{} < {} - Terminating", k, pool.len());
     return result;
   }
 
   for i in 0..pool.len() {
-    println!("{} of {} for {}", i, pool.len(), k);
+    //println!("{} of {} for {}", i, pool.len(), k);
     if k == 1 {
 	  result.push(ON << pool[i]);
 	} else {
@@ -131,7 +141,7 @@ fn combo(pool: &[u16], k:u16) -> Vec<u16> {
       // numbers above.
       //
       // I FUCKING LOVE RECURSION!
-      println!("FInd subresults starting with {} from {} for {}", i, pool.len(), k);
+      //println!("FInd subresults starting with {} from {} for {}", i, pool.len(), k);
       let subresults = combo(&pool[i+1..],k-1);
 
       for element in subresults {
@@ -216,18 +226,18 @@ mod tests {
 	}
 
 	#[test]
-	fn test_box_simplification() {
+	fn test_box_simplification_factor_2() {
       let mut line = Vec::new();
 
-      let mut box1 = BLANK_BOX;
+      let mut box1 = Box::from_possibles([1, 2].to_vec());
       let mut box2 = Box::from_possibles([1, 2].to_vec());
-      let mut box3 = Box::from_possibles([1, 2].to_vec());
-      let mut box4 = Box::from_possibles([1, 2, 3, 4].to_vec());
-      let mut box5 = Box::from_possibles([1, 2, 3, 4].to_vec());
-      let mut box6 = Box::from_possibles([1, 2, 3, 4].to_vec());
-      let mut box7 = Box::from_possibles([1, 2, 3, 4].to_vec());
-      let mut box8 = Box::from_possibles([1, 2, 3, 4].to_vec());
-      let mut box9 = Box::from_possibles([1, 2, 3, 4].to_vec());
+      let mut box3 = Box::from_possibles([1, 2, 3].to_vec());
+      let mut box4 = Box::from_possibles([1, 2, 4].to_vec());
+      let mut box5 = Box::from_possibles([1, 2, 5].to_vec());
+      let mut box6 = Box::from_possibles([1, 2, 6].to_vec());
+      let mut box7 = Box::from_possibles([1, 2, 7].to_vec());
+      let mut box8 = Box::from_possibles([1, 2, 8].to_vec());
+      let mut box9 = Box::from_possibles([1, 2, 9].to_vec());
     
       line.push(&mut box1);
       line.push(&mut box2);
@@ -241,6 +251,111 @@ mod tests {
 
       only_options(line);
 
-      assert_eq!(box4.get_possibles(),[3, 4]);
+      assert_eq!(box3.get_possibles(),[3]);
+      assert_eq!(box4.get_possibles(),[4]);
+      assert_eq!(box5.get_possibles(),[5]);
+      assert_eq!(box6.get_possibles(),[6]);
+      assert_eq!(box7.get_possibles(),[7]);
+      assert_eq!(box8.get_possibles(),[8]);
+      assert_eq!(box9.get_possibles(),[9]);
 	}
+
+	#[test]
+	fn test_box_simplification_factor_3() {
+      let mut line = Vec::new();
+
+      let mut box1 = Box::from_possibles([1, 2, 3].to_vec());
+      let mut box2 = Box::from_possibles([1, 2, 3].to_vec());
+      let mut box3 = Box::from_possibles([1, 2, 3].to_vec());
+      let mut box4 = Box::from_possibles([1, 2, 4].to_vec());
+      let mut box5 = Box::from_possibles([1, 2, 5].to_vec());
+      let mut box6 = Box::from_possibles([1, 2, 6].to_vec());
+      let mut box7 = Box::from_possibles([1, 2, 7].to_vec());
+      let mut box8 = Box::from_possibles([1, 2, 8].to_vec());
+      let mut box9 = Box::from_possibles([1, 2, 9].to_vec());
+    
+      line.push(&mut box1);
+      line.push(&mut box2);
+      line.push(&mut box3);
+      line.push(&mut box4);
+      line.push(&mut box5);
+      line.push(&mut box6);
+      line.push(&mut box7);
+      line.push(&mut box8);
+      line.push(&mut box9);
+
+      only_options(line);
+
+      assert_eq!(box4.get_possibles(),[4]);
+      assert_eq!(box5.get_possibles(),[5]);
+      assert_eq!(box6.get_possibles(),[6]);
+      assert_eq!(box7.get_possibles(),[7]);
+      assert_eq!(box8.get_possibles(),[8]);
+      assert_eq!(box9.get_possibles(),[9]);
+	}
+
+  #[test]
+  fn test_box_simplification_factor_4() {
+    let mut line = Vec::new();
+
+    let mut box1 = Box::from_possibles([1, 2, 3, 4].to_vec());
+    let mut box2 = Box::from_possibles([1, 2, 3, 4].to_vec());
+    let mut box3 = Box::from_possibles([1, 2, 3, 4].to_vec());
+    let mut box4 = Box::from_possibles([1, 2, 3, 4].to_vec());
+    let mut box5 = Box::from_possibles([1, 2, 3, 5].to_vec());
+    let mut box6 = Box::from_possibles([1, 3, 6].to_vec());
+    let mut box7 = Box::from_possibles([1, 2, 7].to_vec());
+    let mut box8 = Box::from_possibles([1, 3, 8].to_vec());
+    let mut box9 = Box::from_possibles([1, 2, 9].to_vec());
+  
+    line.push(&mut box1);
+    line.push(&mut box2);
+    line.push(&mut box3);
+    line.push(&mut box4);
+    line.push(&mut box5);
+    line.push(&mut box6);
+    line.push(&mut box7);
+    line.push(&mut box8);
+    line.push(&mut box9);
+
+    only_options(line);
+
+    assert_eq!(box5.get_possibles(),[5]);
+    assert_eq!(box6.get_possibles(),[6]);
+    assert_eq!(box7.get_possibles(),[7]);
+    assert_eq!(box8.get_possibles(),[8]);
+    assert_eq!(box9.get_possibles(),[9]);
+  }
+
+  #[test]
+  fn test_box_simplification_factor_5() {
+    let mut line = Vec::new();
+
+    let mut box1 = Box::from_possibles([1, 2, 3, 4, 5].to_vec());
+    let mut box2 = Box::from_possibles([1, 2, 3, 4, 5].to_vec());
+    let mut box3 = Box::from_possibles([1, 2, 3, 4, 5].to_vec());
+    let mut box4 = Box::from_possibles([1, 2, 3, 4, 5].to_vec());
+    let mut box5 = Box::from_possibles([1, 2, 3, 4, 5].to_vec());
+    let mut box6 = Box::from_possibles([1, 5, 6].to_vec());
+    let mut box7 = Box::from_possibles([1, 2, 7].to_vec());
+    let mut box8 = Box::from_possibles([5, 3, 8].to_vec());
+    let mut box9 = Box::from_possibles([4, 2, 9].to_vec());
+  
+    line.push(&mut box1);
+    line.push(&mut box2);
+    line.push(&mut box3);
+    line.push(&mut box4);
+    line.push(&mut box5);
+    line.push(&mut box6);
+    line.push(&mut box7);
+    line.push(&mut box8);
+    line.push(&mut box9);
+
+    only_options(line);
+
+    assert_eq!(box6.get_possibles(),[6]);
+    assert_eq!(box7.get_possibles(),[7]);
+    assert_eq!(box8.get_possibles(),[8]);
+    assert_eq!(box9.get_possibles(),[9]);
+  }
 }
