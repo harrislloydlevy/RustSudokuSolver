@@ -182,7 +182,7 @@ impl Box {
      */
     pub fn get_possibles(&self) -> Vec<u16> {
       let mut result = Vec::new();
-      for x in 1..9 {
+      for x in 1..10 {
         if self.poss[x] {
           result.push(x as u16);
         }
@@ -201,7 +201,7 @@ impl Box {
 	pub fn get_possibles_bits(&self) -> u16 {
 		let mut result:u16 = 0;
 
-		for x in 1..9 {
+		for x in 1..10 {
 			if self.poss[x] {
 				result |= ON << x;
 			}
@@ -336,4 +336,12 @@ mod tests {
 			[false, true, false, false, true, false, false, true, false, false]);
 
 	}
+
+    #[test]
+    // Check that converting back and forth from arrays of vals and bitmaps works.
+    fn test_possibles_bitmaps() {
+      let test_box = Box::from_possibles([1,3,9].to_vec());
+
+      assert_eq!(test_box.get_possibles_bits(), ON << 1 | ON << 3 | ON << 9);
+    }
 }
