@@ -340,14 +340,14 @@ impl Sudoku {
 
 		for i in 0..9 {
 			// How does this not need a mut???
-			let row = self.get_row_mut(i);
-			normalise_boxes(row);
+			normalise_boxes(self.get_row_mut(i));
+            only_options(self.get_row_mut(i));
 		}
 
 		for i in 0..9 {
 			// How does this not need a mut???
-			let col = self.get_col_mut(i);
-			normalise_boxes(col);
+			normalise_boxes(self.get_col_mut(i));
+            only_options(self.get_col_mut(i));
 		}
     }
 }

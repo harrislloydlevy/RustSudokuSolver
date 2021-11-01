@@ -35,12 +35,24 @@ impl Cell {
 		// of references to boxes instead of an array of boxes. So we have to pass
 		// in an array of refs instead.
 
-		let mut vec = Vec::new();
-		for x in self.boxes.iter_mut() {
+		{ 
+		  let mut vec = Vec::new();
+		  for x in self.boxes.iter_mut() {
 			vec.push(x);
-		}
+		  }
 
-		solvers::normalise_boxes(vec);
+		  solvers::normalise_boxes(vec);
+        }
+
+        {
+          let mut vec = Vec::new();
+		  for x in self.boxes.iter_mut() {
+			vec.push(x);
+		  }
+
+		  // Reget values as we have moved them in previous call
+          solvers::only_options(vec);
+        }
 	}
 }
 
