@@ -255,13 +255,22 @@ impl Sudoku {
             for cur_box_row in 0..3 {
                 // Read a new line that crosses across all of the boxes.
                 let length = reader.read_line(&mut line).expect("Could not read line");
-                assert_eq!(length, 15); // Make sure there's enough data in line for all the rows
+
+                // Make sure there's enough data in line for all the row. May be 14 or 15 lines
+                // depending on whether it's a unix or windows style text file.
+                if length == 15 {
+                   assert_eq!(line.pop(), Some('\n'));
+                   assert_eq!(line.pop(), Some('\r'));
+                } else if length == 14 {
+                   assert_eq!(line.pop(), Some('\n'));
+                } else {
+                   assert!(false);
+                }
+
     
                 // Read charachters off from the RIGHT of the string using the pop
                 // function. So first read off the \n and tehn continue right to
                 // left.
-                assert_eq!(line.pop(), Some('\n'));
-                assert_eq!(line.pop(), Some('\r'));
     
                 // From 3 to 0 because we're going from right to left popping off end of the string.
                 for cur_cel_col in (0..3).rev() {
