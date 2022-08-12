@@ -82,6 +82,18 @@ impl Box {
 	}
 
 	/**
+	 * remove_possible_value
+	 *
+	 * Based on a value further restrict the box removing any values not makred as possible
+	 * This doesn't add any new possibilities if they are possible in the map, just removes.
+	 * 
+	 */ 
+	 pub fn remove_possible_value(&mut self, value:u16) {
+		self.poss[value as usize] = false;
+	}
+
+
+	/**
 	 * remove_impossible_bits
 	 *
 	 * Based on a bitmap further restrict the box removing any values makred as impossible

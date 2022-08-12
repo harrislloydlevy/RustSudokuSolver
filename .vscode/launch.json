@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "type": "lldb",
             "request": "launch",
@@ -40,6 +41,31 @@
             },
             "args": [],
             "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests for candidate_line",
+            "cargo": {
+                "args": [
+                    "test",
+                    "candidate_line",
+                    "--no-run",
+                    "--bin=rust_sudoku_solver",
+                    "--package=rust_sudoku_solver"
+                ],
+                "filter": {
+                    "name": "rust_sudoku_solver",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "option" : {
+                "env": {
+                    "RUST_LOG": "debug"
+                }
+            }
         }
     ]
 }

@@ -1,4 +1,5 @@
 use crate::constants::*;
+use log::debug;
 use crate::sk_box::Box;
 use crate::sudoku::Sudoku;
 
@@ -265,6 +266,7 @@ pub fn candidate_line(sudoku: &mut Sudoku) {
     for candidate_value in 1..10 {
       let value_bitmap = possibles[candidate_value];
 
+      debug!("CandidateValue cell:{} value:{}", cell_idx, candidate_value);
       for checkline in CONSTANT_LINES.iter() {
         // Check that the value has values in the location bitmap
         // and nowhere else. If so we have a candidate line and can remove this
@@ -274,6 +276,7 @@ pub fn candidate_line(sudoku: &mut Sudoku) {
         // a value will be, we know all possible lcoatiosn are in one row/col
         // so that we can remove that possibility from the other cells in the
         // same row/col in their boxes in line with this row.
+        debug!("CandidateValue cell:{} value:{} - Compare {:#b} to {:#b}", cell_idx, candidate_value, value_bitmap, checkline.bit_pattern);
         if
           (value_bitmap & checkline.bit_pattern) != 0
           &&
@@ -295,12 +298,10 @@ pub fn candidate_line(sudoku: &mut Sudoku) {
             // Now loop over these cells, removing the candidate value from the appropriate
             // row based on where the checkline structure says it is.
             for cell_to_clean_idx in cells_in_row {
-              // Skip over the acual cell we found the index in
-              if cell_to_clean_idx != cell_idx {
-                // Function that actually removes said value from this specific row
-                sudoku.cells[cell_to_clean_idx].rm_poss_from_row(candidate_value as u16, checkline.index);
-              }
+              // Function that actually removes said value from this specific row
+              sudoku.cells[cell_to_clean_idx].rm_poss_from_row(candidate_value as u16, checkline.index);
             }
+
           } else if checkline.direction == Direction::VER {
             // Confirmed we have a candidate line identified as a horizontal row, so
             // need to find the index of the two cells next to this one first.
@@ -314,12 +315,8 @@ pub fn candidate_line(sudoku: &mut Sudoku) {
             // Now loop over these cells, removing the candidate value from the appropriate
             // row based on where the checkline structure says it is.
             for cell_to_clean_idx in cells_in_col {
-              // Skip the cell we're currently in of course.
-              if cell_to_clean_idx != cell_idx {
-                // Function that actually removes said value from this specific row
-                sudoku.cells[cell_to_clean_idx].rm_poss_from_col(candidate_value as u16, checkline.index);
-              }
-
+              // Function that actually removes said value from this specific row
+              sudoku.cells[cell_to_clean_idx].rm_poss_from_col(candidate_value as u16, checkline.index);
           }
         }
       }

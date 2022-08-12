@@ -24,7 +24,7 @@ use crate::solvers::*;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Sudoku {
-    cells: [Cell; 9]
+    pub cells: [Cell; 9]
 }
 
 const BLANK_SUDOKU:Sudoku = Sudoku {
@@ -202,6 +202,18 @@ impl Sudoku {
 		]
 	}
 
+	/**
+     *
+     * get_box
+     *
+	 * This function returns the box at a set cell and box index from the
+     * sudoku. Removes the incovencine and bad prtactice of direclt accessing the
+     * element.
+	 */
+	pub fn get_box(&self, cell_idx:usize, box_idx:usize) -> Box {
+		self.cells[cell_idx].boxes[box_idx]
+	}
+
     // This function creates a sudoku from a file. I don't knwo enough rust
     // yet to have it return a more generic error so just using io::Error
     //
@@ -330,24 +342,26 @@ impl Sudoku {
 	 *
 	 * solve
 	 *
-	 * Normalise the whole sudoku, resolving each cell, row and column until
-	 * a whole round has gone through with no changes to the sudoku.
+	 * Normalise the whole sudoku, resolving each cell, row and column.
+     * 
+     * TODO: This function not a complete solving problem. Simply runs one
+     * round of the cheapest/fastests most basic sudoku solving techniques.
 	 */
 	pub fn solve(&mut self) {
 	 	for cell in self.cells.iter_mut() {
-			cell.normalise()
+			cell.solve()
 		}
 
 		for i in 0..9 {
 			// How does this not need a mut???
-			normalise_boxes(self.get_row_mut(i));
-            only_options(self.get_row_mut(i));
+            single_position_candidate(self.get_row_mut(i));
+			naked_set(self.get_row_mut(i));
 		}
 
 		for i in 0..9 {
 			// How does this not need a mut???
-			normalise_boxes(self.get_col_mut(i));
-            only_options(self.get_col_mut(i));
+            single_position_candidate(self.get_col_mut(i));
+			naked_set(self.get_col_mut(i));
 		}
     }
 }
@@ -548,7 +562,7 @@ mod tests {
 
 		// How does this not need a mut???
 		let row = sudoku.get_row_mut(0);
-		normalise_boxes(row);
+		single_position_candidate(row);
 		assert_eq!(sudoku.cells[TOP_LFT].boxes[TOP_LFT], Box::from_val(1));
 	}
 

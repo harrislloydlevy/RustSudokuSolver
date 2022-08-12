@@ -30,7 +30,7 @@ impl fmt::Display for Cell {
 impl Cell {
 	// Run "normalization" which is the simplest form of solving any 9 element sudoku
 	// over this particular cell.
-    pub fn normalise(&mut self) {
+    pub fn solve(&mut self) {
 		// We can't just call normalise_boxes direclty as that fucntion expect an array
 		// of references to boxes instead of an array of boxes. So we have to pass
 		// in an array of refs instead.
@@ -41,7 +41,7 @@ impl Cell {
 			vec.push(x);
 		  }
 
-		  solvers::normalise_boxes(vec);
+		  solvers::single_position_candidate(vec);
         }
 
         {
@@ -49,12 +49,71 @@ impl Cell {
 		  for x in self.boxes.iter_mut() {
 			vec.push(x);
 		  }
-
-		  // Reget values as we have moved them in previous call
-          solvers::only_options(vec);
+          solvers::naked_set(vec);
         }
 	}
-}
+
+	/**
+     *
+     * bitmap_possibles
+     *
+     * Get a 10 element array where each element is a bitmap of which boxes
+     * in the cell as possibles for the value of the arrays index. I.e. index
+     * 4 holds a bitmap of which elements in the box could possibly hold the
+	 * value 4.
+     *
+     * This gives us an array we can easily check how often a given value
+     * is possible and in whch boxes which is useful for many solving techniques.
+     * 
+     * For example in an cell where the values 1 and 3 where only possible in boxes
+     * at index 4 and 5 and the array would have the value b1010 and indexes 4 and 5.
+     */
+    pub fn bitmap_possibles(&self) -> [u16; 10] {
+        let mut result = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+		// Cur_idx hold which of the boxes we are currently looking at
+        // iterate over all of them tagging in their location index
+        // as a bit pattern into each pattern they could possibly be.
+	    for idx in 0..9 {
+			let cur_box = self.boxes[idx];
+
+            // This is the bit pattern we tag in based on possible values.
+            // It represents this boxes location, and we add it into
+			// the bit pattern for each of the possible values.
+            let bit_pattern = 1 << idx;
+
+            for poss_val in cur_box.get_possibles() {
+			    result[usize::from(poss_val)] = result[usize::from(poss_val)] | bit_pattern;
+			}
+            
+	    }
+        result
+	}
+
+	/**
+	 * rm_poss_from_row
+	 * 
+	 * Convenience function to remove any possibilities of a given value in a given
+	 * row in a cell.
+	 */
+	pub fn rm_poss_from_row(&mut self, value:u16, row:usize) {
+		let start_idx = row*3;
+		self.boxes[start_idx   ].remove_possible_value(value);
+		self.boxes[start_idx + 1].remove_possible_value(value);
+		self.boxes[start_idx + 2].remove_possible_value(value);
+	}
+
+	/**
+	 * rm_poss_from_col
+	 * 
+	 * Convenience function to remove any possibilities of a given value in a given
+	 * row in a cell.
+	 */
+	 pub fn rm_poss_from_col(&mut self, value:u16, col:usize) {
+		self.boxes[col    ].remove_possible_value(value);
+		self.boxes[col + 3].remove_possible_value(value);
+		self.boxes[col + 6].remove_possible_value(value);
+	}}
 
 #[cfg(test)]
 mod tests {
@@ -69,7 +128,7 @@ mod tests {
                     Box::from_val(7), Box::from_val(8), Box::from_val(9)]
 		};
  
-		test_cell.normalise();
+		test_cell.solve();
 
 		assert!(test_cell.boxes[TOP_LFT].value == Some(1));
 	}
