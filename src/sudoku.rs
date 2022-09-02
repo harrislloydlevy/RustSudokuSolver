@@ -267,14 +267,20 @@ impl Sudoku {
             for cur_box_row in 0..3 {
                 // Read a new line that crosses across all of the boxes.
                 let length = reader.read_line(&mut line).expect("Could not read line");
-                assert_eq!(length, 15); // Make sure there's enough data in line for all the rows
-    
-                // Read charachters off from the RIGHT of the string using the pop
-                // function. So first read off the \n and tehn continue right to
-                // left.
-                assert_eq!(line.pop(), Some('\n'));
-                assert_eq!(line.pop(), Some('\r'));
-    
+
+                // For windows and unix files this length could be different. Both should
+                // start with a new line feed.
+                if line.ends_with("\n\r") {
+                  assert_eq!(length, 15); // Make sure there's enough data in line for all the rows
+                  assert_eq!(line.pop(), Some('\r'));
+                  assert_eq!(line.pop(), Some('\n'));
+                } else {
+                  // Otherwise assume a unix file
+                  assert_eq!(length, 14); // Make sure there's enough data in line for all the rows
+                  assert_eq!(line.pop(), Some('\n'));
+                }
+
+
                 // From 3 to 0 because we're going from right to left popping off end of the string.
                 for cur_cel_col in (0..3).rev() {
                     // Read off the first '|'
