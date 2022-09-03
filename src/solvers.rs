@@ -104,18 +104,18 @@ pub fn naked_set(mut boxes: Vec<&mut Box>) {
  
       // If we every find more matches than there are facotrs something has gone *very*
       // wrong upstream. It would mean N boxes are vyiung for N+1 values which isn't right. 
-      println!("Matches: {} / Factors: {} / Pattern: {:b} in {:?}", matches, factors, *pattern, boxes);
+      // println!("Matches: {} / Factors: {} / Pattern: {:b} in {:?}", matches, factors, *pattern, boxes);
 
-      boxes.iter()
-        .filter(|x| x.get_possibles_bits() == *pattern)
-        .for_each(|x| println!("{:?} matches {:#010b}", x, pattern));
+      // boxes.iter()
+      //  .filter(|x| x.get_possibles_bits() == *pattern)
+      //  .for_each(|x| println!("{:?} matches {:#010b}", x, pattern));
       assert!(matches <=factors);
       
       // If there are exactly as many as  we are looking for (hardcoded to 4 right now)
       //then remove this bit pattern as a possibility from all other boxes in the collection.
   	  if matches == factors {
   	    // Find the boxes that didn't match the pattern exactly.
-        println!("Removing {:#010b} from {:?}", pattern, boxes);
+        // println!("Removing {:#010b} from {:?}", pattern, boxes);
   	    boxes.iter_mut()
           .filter(|x| x.get_possibles_bits() != *pattern)
           .for_each(|x| x.remove_impossible_bits(*pattern));

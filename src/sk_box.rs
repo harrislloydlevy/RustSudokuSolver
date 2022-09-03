@@ -1,5 +1,7 @@
 use std::fmt;
+use std::io::stdout;
 use crate::constants::*;
+use crossterm::{execute, cursor::*};
 
 // TODO: Change the from_possibles fucntions to use slices instead of vecs.
 
@@ -259,6 +261,33 @@ impl Box {
             }
         }
     }
+
+		pub fn pretty_print(&self) {
+			// See docs for pretty print on sudoku function for full overview.
+			// There are two different way to print here, one for if we have a 
+			// confirmed value and another if we onkly have possibles.
+			match self.value {
+				Some(x) => {
+		      execute!(stdout(), MoveRight(1), MoveDown(1)).ok();
+					print!("{}", x);
+		      execute!(stdout(), MoveLeft(2), MoveUp(1)).ok();
+				},
+				None => {
+					for val in 1..10 {
+						if self.poss[val] == true {
+						  print!("{}", val);
+						} else {
+						  print!(".");
+						}
+						if val % 3 == 0 {
+						  // Every third line move back to the start and down on.
+		          execute!(stdout(), MoveLeft(3), MoveDown(1)).ok();
+						}
+					}
+		      execute!(stdout(), MoveUp(3)).ok();
+				}
+			}
+		}
 }
 
 

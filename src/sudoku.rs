@@ -1,10 +1,16 @@
 use std::fs;
-use std::io;
+use std::io::stdout;
 use std::io::BufRead;
 use crate::constants::*;
 use crate::sk_cell::*;
 use crate::sk_box::*;
 use crate::solvers::*;
+// use boxy::{Char, Weight};
+
+use crossterm::{
+    execute,
+    cursor::*
+};
 
 // Setup a data structure that represents a sudoku. It is made up on overall Sudouko, which
 // consists of a 3x3 matrix of Cells, which are in turn a 3x3 matrix of Boxes. Each box has either
@@ -35,7 +41,7 @@ const BLANK_SUDOKU:Sudoku = Sudoku {
 
 impl Sudoku {
 	/**
-     * row_mut
+         * row_mut
 	 *
 	 * Returns a horizontal row across 3 cells. Takes an input 0-8 to which row to
 	 * return.
@@ -67,7 +73,7 @@ impl Sudoku {
 		// To find the offset within the cell mod by 3, then * 3
 		// to be either 0, 3, or 6 within cell. Remember index from 0.
 		let box_offset  = (row % 3) * 3;
-		println!("Row: {} CO: {} / BO: {}", row, cell_offset, box_offset);
+		// println!("Row: {} CO: {} / BO: {}", row, cell_offset, box_offset);
 		let mut cell_iter = self.cells.iter_mut();
 
 		// Fast forward the cell iterator to the cell before the one we want
@@ -76,10 +82,10 @@ impl Sudoku {
 			cell_iter.nth(cell_offset-1).unwrap();
 		}
 
-		for x in 0..3 {
+		for _x in 0..3 {
 			let cell         = cell_iter.next().unwrap();
 
-			println!("Cell {}: {}", cell_offset+x, cell);
+			// println!("Cell {}: {}", cell_offset+x, cell);
 			let mut box_iter = cell.boxes.iter_mut();
 
 			// Fast forward to the right row of the cell if necessary
@@ -87,9 +93,8 @@ impl Sudoku {
 				box_iter.nth(box_offset-1).unwrap();
 			}
 			
-			for y in 0..3 {
+			for _y in 0..3 {
 				let read_box = box_iter.next().unwrap();
-				println!("Reading {} / {} - {}", cell_offset+x, box_offset+y, read_box);
 				result.push(read_box);
 			}
 		}
@@ -134,7 +139,7 @@ impl Sudoku {
 		// To find the offset within the cell just mod by 3.
 		let box_offset  = col % 3;
 
-		println!("Col: {} CO: {} / BO: {}", col, cell_offset, box_offset);
+		// println!("Col: {} CO: {} / BO: {}", col, cell_offset, box_offset);
 		let mut cell_iter = self.cells.iter_mut();
 
 		// Fast forward the cell iterator so the next cell it returns is the one
@@ -162,7 +167,6 @@ impl Sudoku {
 
 			for y in 0..3 {
 				let read_box = box_iter.next().unwrap();
-				println!("Reading {} / {} - {}", cell_offset+x, box_offset+y, read_box);
 				result.push(read_box);
 
 				// Now we skip the next two boxes unless we were reading the last value.
@@ -203,22 +207,35 @@ impl Sudoku {
 	}
 
 	/**
-     *
-     * get_box
-     *
-	 * This function returns the box at a set cell and box index from the
-     * sudoku. Removes the incovencine and bad prtactice of direclt accessing the
-     * element.
+   *
+   * get_box
+   *
+   * This function returns the box at a set cell and box index from the
+   * sudoku. Removes the incovencine and bad prtactice of direclt accessing the
+   * element.
+	 *
+	 * Note - doesn't return a ref, but a copy so cannot be used to modify sudoku!
 	 */
 	pub fn get_box(&self, cell_idx:usize, box_idx:usize) -> Box {
 		self.cells[cell_idx].boxes[box_idx]
 	}
 
+	/**
+     *
+     * get_cell
+     *
+	 * This function returns the cell at a given index
+     * sudoku. Removes the incovencine and bad prtactice of direclt accessing the
+     * element.
+	 */
+	pub fn get_cell(&self, cell_idx:usize) -> Cell {
+		self.cells[cell_idx]
+	}
     // This function creates a sudoku from a file. I don't knwo enough rust
     // yet to have it return a more generic error so just using io::Error
     //
     // File Format taken from Simple Sudoku
-    pub fn from_ss(filename:String) -> Result<Sudoku, io::Error> {
+    pub fn from_ss(filename:String) -> Result<Sudoku, &'static str> {
         // We expect to read a stream of numbers set out in the same
         // way a sudo would be printed on page, with "|" and "-" marks
         // used to break up the cells and the boxes in each cell just seperated by
@@ -369,6 +386,134 @@ impl Sudoku {
             single_position_candidate(self.get_col_mut(i));
 			naked_set(self.get_col_mut(i));
 		}
+    }
+
+    /**
+     * pretty_print
+     * 
+     * Print to screen a nice version of the sudoku that shows actual
+     * values and potential ones too. Every box is a 3x3 cell of numbers
+     * showing potential and/or actual values so it's a pretty big box.
+     */
+    pub fn pretty_print(&self) {
+        // This fucntion works by printing up the scaffolding of the
+        // sudoku, then calling the cell pretty_print functions and
+        // box pretty_print functions to draw in the provided location
+        //
+        // It's always assumed that the cursor is at the top-left corner
+        // of the space to draw in.
+        //
+        // Each box is a 3x3 cell of text. If no confirmed values each
+        // potential is showin in it's own position (1-9) and excluded
+        // values are shown as a .
+        //
+        // If an actual value is found it's set in the middle of the box.
+        //
+        // Potential value are laid out like below:
+        // 123     1.3    
+        // 456  or .5.  or 3
+        // 789     .89
+        //
+        // These mean could be 1-9, could be 1,3,5,8, 9r 9, and is definitely 3
+        // respectively.
+        //
+        // Boxes are laid out in a 3x3 matrix with single lines of text '|' or '-'
+        // seperating them.
+        //
+        // Cells are then laid out in the overall sudoku with double lines between them.
+        //
+        // So this function just prints a shape like below, then moves the cursor around
+        // to have teh cell pretty_print function do it's thing in each box:"
+        // ╔════╦════╦════╗
+        // ║    ║    ║    ║
+        // ╠════╬════╬════╣
+        // ║    ║    ║    ║
+        // ╠════╬════╬════╣
+        // ║    ║    ║    ║
+        // ╚════╩════╩════╝
+
+        /* 
+        These string constants used to get special cahrachters and then chars pasted
+        into code as required.
+        let weight = Weight::Doubled;
+        let ul:String = Char::upper_left(weight).into_char().to_string();
+        let ur:String = Char::upper_right(weight).into_char().to_string();
+        let dt:String = Char::down_tee(weight).into_char().to_string();
+        let hz:String = Char::horizontal(weight).into_char().to_string();
+        let vr:String = Char::vertical(weight).into_char().to_string();
+        */
+
+   
+        // First set our position to the top-left, and we can use that as the basis for everything
+        // going forward.
+        // Write the top line
+
+        // Now write the sides of the top boxes
+        for cell_index in 0 .. 3 {
+            if cell_index == 0 {
+                // Drawing the first row so print the first line
+              println!("╔═══════════╦═══════════╦═══════════╗");
+            }
+
+            // Draw the sides of the boxes
+            for _i in 0.. 11 {
+              println!("║           ║           ║           ║");
+            }
+
+            // If the very end of the sudoku draw the bottom, otherwise
+            // draw a middle cross line
+            
+            if cell_index == 2 {
+              print!("╚");
+            } else {
+              print!("╠");
+            }
+
+            for row_index in 0.. 3 {
+              for _n in 0..11 {
+                print!("═");
+              }
+
+              if row_index != 2 {
+                if cell_index != 2 {
+                  print!("╬");
+                } else {
+                  print!("╩");
+                }
+              }
+            }
+
+            if cell_index != 2 {
+              print!("╣");
+            } else {
+              print!("╝");
+            }
+            println!("");
+        }
+
+        // Now we have to move through the 9 cells adjsuting the cursor to the top-left
+        // each time and then calling the cell pretty print function to fill it out.
+        //
+        // First step is to get back to the top-left corner. We're at the line after
+        // the whoel sudoku was printed now, and each cell is 11 boxes inside, plus the
+        // bottom and intervening rows, 
+        //
+        // we assume each cell draw function sets the cursor back to the same position
+        // as it was at the start.
+        execute!(stdout(), MoveUp((11*3) + 3)).ok();
+
+        for row_idx in 0 .. 3 {
+            execute!(stdout(), MoveToColumn(1)).ok();
+            for col_idx in 0 .. 3 {
+                self.get_cell((row_idx*3) + col_idx).pretty_print();
+                execute!(stdout(), MoveRight(12)).ok();
+            }
+            execute!(stdout(), MoveDown(12)).ok();
+        }
+
+        // End by moving back to start of colum as loop above should already
+        // have ended up with us past the sudoku output.
+        execute!(stdout(), MoveToColumn(1)).ok();
     }
 }
 
@@ -588,4 +733,23 @@ mod tests {
 		assert_eq!(sudoku.cells[BOT_RHT].boxes[BOT_RHT], Box::from_val(1));
 
 	}
+
+    #[test]
+    fn test_sudoku_pretty_print() {
+        // This is a shitty test - not sure how to test that console output matches a
+        // expected outcome!
+        //
+        // TODO: Change test to comare outcome to a an expected file of output.
+		    let mut sudoku = Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
+
+				// sudoku.cells[0].boxes[0].remove_possible_value(1);
+				// sudoku.cells[0].boxes[0].remove_possible_value(5);
+				// sudoku.cells[0].boxes[0].remove_possible_value(9);
+				sudoku.solve();
+
+        sudoku.pretty_print();
+
+
+        assert!(true);
+    }
 }
