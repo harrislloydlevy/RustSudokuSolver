@@ -515,6 +515,18 @@ impl Sudoku {
         // have ended up with us past the sudoku output.
         execute!(stdout(), MoveToColumn(1)).ok();
     }
+
+    // Check if the whole sudoku is solved.
+    // simply check if all the cells are solved and only return true if none are unsolved
+    pub fn solved(&self) -> bool {
+      for cell in self.cells {
+        if !cell.solved() {
+          return false;
+        }
+      }
+
+      return true;
+    }
 }
 
 #[cfg(test)]
@@ -751,5 +763,14 @@ mod tests {
 
 
         assert!(true);
+    }
+
+    #[test]
+    fn test_solved() {
+		    let sudoku = Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
+        assert!(!sudoku.solved());
+
+		    let sudoku = Sudoku::from_ss("test/solved.ss".to_string()).unwrap();
+        assert!(sudoku.solved());
     }
 }

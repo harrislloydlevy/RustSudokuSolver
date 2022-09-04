@@ -288,6 +288,17 @@ impl Box {
 				}
 			}
 		}
+
+    pub fn solved(&self) -> bool {
+      match self.value {
+        Some(_x) => {
+          return true;
+        },
+        None => {
+          return false;
+        }
+      }
+    }
 }
 
 

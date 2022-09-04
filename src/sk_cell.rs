@@ -170,6 +170,16 @@ impl Cell {
 		}
 		execute!(stdout(), MoveUp(12)).ok();
 	}
+
+  pub fn solved(&self) -> bool {
+    for sk_box in self.boxes {
+      if !sk_box.solved() {
+        return false;
+      }
+    }
+
+    return true;
+  }
 }
 
 #[cfg(test)]
