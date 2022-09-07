@@ -7,14 +7,14 @@
 // TODO: Easier way to get the values/posibles of a specific cell/box than directly looking up
 //       the internal structures.
 
-mod sudoku;
+mod constants;
 mod sk_box;
 mod sk_cell;
 mod solvers;
-mod constants;
+mod sudoku;
 
 fn main() {
-	let mut sudoku = sudoku::Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
-	sudoku.solve();
-	sudoku.print_ss();
+    let mut sudoku = sudoku::Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
+    sudoku.solve();
+    sudoku.print_ss();
 }
