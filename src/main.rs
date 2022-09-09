@@ -15,6 +15,6 @@ mod sudoku;
 
 fn main() {
     let mut sudoku = sudoku::Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
-    sudoku.solve();
+    solvers::naive(&mut sudoku);
     sudoku.print_ss();
 }

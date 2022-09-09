@@ -1,7 +1,6 @@
 use crate::constants::*;
 use crate::sk_box::*;
 use crate::sk_cell::*;
-use crate::solvers::*;
 use std::fs;
 use std::io::stdout;
 use std::io::BufRead;
@@ -359,33 +358,6 @@ impl Sudoku {
     }
 
     /**
-     *
-     * solve
-     *
-     * Normalise the whole sudoku, resolving each cell, row and column.
-     *
-     * TODO: This function not a complete solving problem. Simply runs one
-     * round of the cheapest/fastests most basic sudoku solving techniques.
-     */
-    pub fn solve(&mut self) {
-        for cell in self.cells.iter_mut() {
-            cell.solve()
-        }
-
-        for i in 0..9 {
-            // How does this not need a mut???
-            single_position_candidate(self.get_row_mut(i));
-            naked_set(self.get_row_mut(i));
-        }
-
-        for i in 0..9 {
-            // How does this not need a mut???
-            single_position_candidate(self.get_col_mut(i));
-            naked_set(self.get_col_mut(i));
-        }
-    }
-
-    /**
      * pretty_print
      *
      * Print to screen a nice version of the sudoku that shows actual
@@ -541,6 +513,7 @@ impl Sudoku {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::solvers;
 
     #[test]
     fn test_blank_read() {
@@ -729,32 +702,6 @@ mod tests {
     }
 
     #[test]
-    fn test_row_solve() {
-        let mut sudoku = Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
-
-        // How does this not need a mut???
-        let row = sudoku.get_row_mut(0);
-        single_position_candidate(row);
-        assert_eq!(sudoku.cells[TOP_LFT].boxes[TOP_LFT], Box::from_val(1));
-    }
-
-    #[test]
-    fn test_sudoku_solve() {
-        let mut sudoku = Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
-
-        sudoku.solve();
-
-        // Check that the top left most box got solved as it's the last in the row
-        assert_eq!(sudoku.cells[TOP_LFT].boxes[TOP_LFT], Box::from_val(1));
-
-        // Check that the center box got solved as it's the last in the column
-        assert_eq!(sudoku.cells[MID_MID].boxes[MID_MID], Box::from_val(1));
-
-        // Check that the bot right most box got solved as it's the last in the column
-        assert_eq!(sudoku.cells[BOT_RHT].boxes[BOT_RHT], Box::from_val(1));
-    }
-
-    #[test]
     fn test_sudoku_pretty_print_single() {
         // This is a shitty test - not sure how to test that console output matches a
         // expected outcome!
@@ -765,7 +712,7 @@ mod tests {
         // sudoku.cells[0].boxes[0].remove_possible_value(1);
         // sudoku.cells[0].boxes[0].remove_possible_value(5);
         // sudoku.cells[0].boxes[0].remove_possible_value(9);
-        sudoku.solve();
+        solvers::naive(&mut sudoku);
 
         sudoku.pretty_print(None);
 
@@ -780,7 +727,7 @@ mod tests {
         // TODO: Change test to comare outcome to a an expected file of output.
         let unsolved = Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
         let mut solved = unsolved;
-        solved.solve();
+        solvers::naive(&mut solved);
 
         solved.pretty_print(Some(unsolved));
 

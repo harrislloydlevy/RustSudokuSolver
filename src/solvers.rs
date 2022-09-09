@@ -8,14 +8,43 @@ use crate::sudoku::Sudoku;
  * google a description with pictures.
  */
 
-// TODO: Big Rock - change all sovers to use the same function signature which takes
-// an immutabel Sudoku as input and returns a
-
 // useful enum sometimes for switching on solving
 #[derive(PartialEq, Debug, Copy, Clone)]
 enum Direction {
     HOR,
     VER,
+}
+
+/**
+ *
+ * naive
+ *
+ * Perform one round of the most naive solving of the sudoku possible.
+ * Only applies the three basic set solving techniques to each cell, row
+ * and column of the sudoku.
+ * 1. If there is a solved value in the set of 9, remove that as an option
+ *    from every other box.
+ * 2. If there is only one box that could hold a particular value then
+ *    set that box to the value. (Single position candidate)
+ * 3. If there is a set of N values that are the only possible in the same N
+ *    squares, then remove them as possibles from all other squares (Naked set)
+ */
+pub fn naive(sudoku:&mut Sudoku) {
+    for cell in sudoku.cells.iter_mut() {
+        cell.solve()
+    }
+
+    for i in 0..9 {
+        // How does this not need a mut???
+        single_position_candidate(sudoku.get_row_mut(i));
+        naked_set(sudoku.get_row_mut(i));
+    }
+
+    for i in 0..9 {
+        // How does this not need a mut???
+        single_position_candidate(sudoku.get_col_mut(i));
+        naked_set(sudoku.get_col_mut(i));
+    }
 }
 
 /**
@@ -238,7 +267,8 @@ const CONSTANT_LINES: [ConstantLine; 6] = [
  * removed from the complete row or sudoku of the sudoku it is in.
  *
  * For instance if we find that the value '2' could only be in the mid row of the top-left
- * cell then we remove '2' as a possible value from the entire of the 2nd row of the sudoku.
+ * cell then we remove '2' as a possible value from the entire of the 2nd row of sudoku
+ * in the top-mid and top-right cells
  */
 pub fn candidate_line(sudoku: &mut Sudoku) {
     /*
@@ -555,4 +585,31 @@ mod tests {
             Box::from_possibles([1, 2, 3, 4, 5, 6].to_vec())
         );
     }
+
+    #[test]
+    fn test_naive_row_solve() {
+        let mut sudoku = Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
+
+        // How does this not need a mut???
+        let row = sudoku.get_row_mut(0);
+        single_position_candidate(row);
+        assert_eq!(sudoku.cells[TOP_LFT].boxes[TOP_LFT], Box::from_val(1));
+    }
+
+    #[test]
+    fn test_naive_sudoku_solve() {
+        let mut sudoku = Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
+
+        naive(&mut sudoku);
+
+        // Check that the top left most box got solved as it's the last in the row
+        assert_eq!(sudoku.cells[TOP_LFT].boxes[TOP_LFT], Box::from_val(1));
+
+        // Check that the center box got solved as it's the last in the column
+        assert_eq!(sudoku.cells[MID_MID].boxes[MID_MID], Box::from_val(1));
+
+        // Check that the bot right most box got solved as it's the last in the column
+        assert_eq!(sudoku.cells[BOT_RHT].boxes[BOT_RHT], Box::from_val(1));
+    }
+
 }
