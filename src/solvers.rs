@@ -30,8 +30,9 @@ enum Direction {
  *    squares, then remove them as possibles from all other squares (Naked set)
  */
 pub fn naive(sudoku:&mut Sudoku) {
-    for cell in sudoku.cells.iter_mut() {
-        cell.solve()
+    for i in 0..9 {
+        single_position_candidate(sudoku.cells[i].get_mut());
+        naked_set(sudoku.cells[i].get_mut());
     }
 
     for i in 0..9 {

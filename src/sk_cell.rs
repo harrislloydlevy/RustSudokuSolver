@@ -1,6 +1,5 @@
 use crate::constants::*;
 use crate::sk_box::*;
-use crate::solvers;
 use std::fmt;
 use std::io::stdout;
 // use boxy::{Char, Weight};
@@ -33,29 +32,20 @@ impl fmt::Display for Cell {
 }
 
 impl Cell {
-    // Run "normalization" which is the simplest form of solving any 9 element sudoku
-    // over this particular cell.
-    pub fn solve(&mut self) {
-        // We can't just call normalise_boxes direclty as that fucntion expect an array
-        // of references to boxes instead of an array of boxes. So we have to pass
-        // in an array of refs instead.
+    /**
+     * get_mut
+     *
+     * Just like the get_row_mut and get_cell_mut functions of the overall
+     * sudoku gets a vector of mutable boxes from the sudoku that solving functions
+     * that work on sets of 9 boxes can run over.
+     */
+    pub fn get_mut<'a>(&'a mut self) -> Vec<&mut Box> {
+      let mut result = Vec::new();
+      for sk_box in self.boxes.iter_mut() {
+        result.push(sk_box); 
+      }
 
-        {
-            let mut vec = Vec::new();
-            for x in self.boxes.iter_mut() {
-                vec.push(x);
-            }
-
-            solvers::single_position_candidate(vec);
-        }
-
-        {
-            let mut vec = Vec::new();
-            for x in self.boxes.iter_mut() {
-                vec.push(x);
-            }
-            solvers::naked_set(vec);
-        }
+      result
     }
 
     /**
@@ -189,6 +179,7 @@ impl Cell {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::solvers::*;
 
     #[test]
     // Check that we can solve a box when there's only one value left.
@@ -207,7 +198,7 @@ mod tests {
             ],
         };
 
-        test_cell.solve();
+        single_position_candidate(test_cell.get_mut());
 
         assert!(test_cell.boxes[TOP_LFT].value == Some(1));
     }
