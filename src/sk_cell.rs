@@ -134,7 +134,7 @@ impl Cell {
      *    |    |
      *    |    |
      */
-    pub fn pretty_print(&self) {
+    pub fn pretty_print(&self, diff: Option<Cell>) {
         // Start by assuming we are at the top-left corner for cusor position anyway
         // then draw out the interior lines of the cell.
 
@@ -159,7 +159,15 @@ impl Cell {
         // Now we print each of the 9 boxes in the cell to fill them in
         for row_idx in 0..3 {
             for cell_idx in 0..3 {
-                self.boxes[(row_idx * 3) + cell_idx].pretty_print();
+                let box_idx = (row_idx * 3) + cell_idx;
+                match diff {
+                    None => {
+                        self.boxes[box_idx].pretty_print(None);
+                    }
+                    Some(diff_cell) => {
+                        self.boxes[box_idx].pretty_print(Some(diff_cell.boxes[box_idx]));
+                    }
+                }
                 execute!(stdout(), MoveRight(4)).ok();
             }
             execute!(stdout(), MoveLeft(12), MoveDown(4)).ok();

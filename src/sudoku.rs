@@ -391,8 +391,11 @@ impl Sudoku {
      * Print to screen a nice version of the sudoku that shows actual
      * values and potential ones too. Every box is a 3x3 cell of numbers
      * showing potential and/or actual values so it's a pretty big box.
+     *
+     * diff - If provided print cells that differ from this sudoku a
+     *        different color
      */
-    pub fn pretty_print(&self) {
+    pub fn pretty_print(&self, diff: Option<Sudoku>) {
         // This fucntion works by printing up the scaffolding of the
         // sudoku, then calling the cell pretty_print functions and
         // box pretty_print functions to draw in the provided location
@@ -501,7 +504,17 @@ impl Sudoku {
         for row_idx in 0..3 {
             execute!(stdout(), MoveToColumn(1)).ok();
             for col_idx in 0..3 {
-                self.get_cell((row_idx * 3) + col_idx).pretty_print();
+                let cell_idx = (row_idx * 3) + col_idx;
+
+                // Here we pretty_print the contained cell, but we also have to
+                // provide the cell to compare against when doign that printing
+                // if it was provided to us.
+                match diff {
+                    None => self.get_cell(cell_idx).pretty_print(None),
+                    Some(diff_sudoku) => self
+                        .get_cell(cell_idx)
+                        .pretty_print(Some(diff_sudoku.get_cell(cell_idx))),
+                }
                 execute!(stdout(), MoveRight(12)).ok();
             }
             execute!(stdout(), MoveDown(12)).ok();
@@ -742,7 +755,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sudoku_pretty_print() {
+    fn test_sudoku_pretty_print_single() {
         // This is a shitty test - not sure how to test that console output matches a
         // expected outcome!
         //
@@ -754,7 +767,22 @@ mod tests {
         // sudoku.cells[0].boxes[0].remove_possible_value(9);
         sudoku.solve();
 
-        sudoku.pretty_print();
+        sudoku.pretty_print(None);
+
+        assert!(true);
+    }
+
+    #[test]
+    fn test_sudoku_pretty_print_compare() {
+        // This is a shitty test - not sure how to test that console output matches a
+        // expected outcome!
+        //
+        // TODO: Change test to comare outcome to a an expected file of output.
+        let unsolved = Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
+        let mut solved = unsolved;
+        solved.solve();
+
+        solved.pretty_print(Some(unsolved));
 
         assert!(true);
     }
