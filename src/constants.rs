@@ -1,6 +1,6 @@
 #[allow(unused)]
-pub const ON:u16  = 1;
-pub const OFF:u16 = 0;
+pub const ON: u16 = 1;
+pub const OFF: u16 = 0;
 
 // Consts to easily get the index of a given positions in a 3x3 array that's stored
 // as an array. Implmetned as usize as they are used to lookup arrays.

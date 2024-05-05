@@ -2,8 +2,10 @@
 name = "rust_sudoku_solver"
 version = "0.1.0"
 authors = ["harrislloydlevy <harris.lloydlevy@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 rand = "0.8.5"
 rand_chacha = "0.3.1"
+crossterm = "*"
+boxy = "*"
