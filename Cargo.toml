@@ -5,3 +5,5 @@ authors = ["harrislloydlevy <harris.lloydlevy@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+rand = "0.8.5"
+rand_chacha = "0.3.1"

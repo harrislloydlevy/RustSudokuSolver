@@ -12,6 +12,7 @@ mod sk_box;
 mod sk_cell;
 mod solvers;
 mod constants;
+mod sudoku_builder;
 
 fn main() {
 	let mut sudoku = sudoku::Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
