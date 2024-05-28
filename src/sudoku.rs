@@ -29,7 +29,7 @@ pub struct Sudoku {
     pub cells: [Cell; 9],
 }
 
-const BLANK_SUDOKU: Sudoku = Sudoku {
+pub const BLANK_SUDOKU: Sudoku = Sudoku {
     cells: [
         BLANK_CELL, BLANK_CELL, BLANK_CELL, BLANK_CELL, BLANK_CELL, BLANK_CELL, BLANK_CELL,
         BLANK_CELL, BLANK_CELL,
@@ -226,6 +226,7 @@ impl Sudoku {
     pub fn get_cell(&self, cell_idx: usize) -> Cell {
         self.cells[cell_idx]
     }
+
     // This function creates a sudoku from a file. I don't knwo enough rust
     // yet to have it return a more generic error so just using io::Error
     //
@@ -283,19 +284,18 @@ impl Sudoku {
                 // Make sure there's enough data in line for all the row. May be 14 or 15 lines
                 // depending on whether it's a unix or windows style text file.
                 if length == 15 {
-                   assert_eq!(line.pop(), Some('\n'));
-                   assert_eq!(line.pop(), Some('\r'));
+                    assert_eq!(line.pop(), Some('\n'));
+                    assert_eq!(line.pop(), Some('\r'));
                 } else if length == 14 {
-                   assert_eq!(line.pop(), Some('\n'));
+                    assert_eq!(line.pop(), Some('\n'));
                 } else {
-                   assert!(false);
+                    assert!(false);
                 }
 
-    
                 // Read charachters off from the RIGHT of the string using the pop
                 // function. So first read off the \n and tehn continue right to
                 // left.
-    
+
                 // From 3 to 0 because we're going from right to left popping off end of the string.
                 for cur_cel_col in (0..3).rev() {
                     // Read off the first '|'

@@ -14,4 +14,4 @@ pub const BOT_LFT:usize = 6;
 pub const BOT_MID:usize = 7;
 pub const BOT_RHT:usize = 8;
 
-pub const ARRAY_OF_9: [i32; 9] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+pub const ARRAY_OF_9: [u8; 9] = [1, 2, 3, 4, 5, 6, 7, 8, 9];

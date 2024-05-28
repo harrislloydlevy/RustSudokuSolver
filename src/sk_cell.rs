@@ -49,6 +49,23 @@ impl Cell {
     }
 
     /**
+     * set
+     *
+     * Set the cells values from a vec of integers.
+     * 0 is taken to be blank.
+     *
+     * Used for intialising cells during sudoku construction so doesn't
+     * set any possible values or consider whether cell is valid internally.
+     */
+    pub fn set(&mut self, values: [u8; 9]) {
+        assert_eq!(values.len(), 9);
+        for x in 0..9 {
+            let i = values[x];
+            self.boxes[x] = Box::from_val(i);
+        }
+    }
+
+    /**
      *
      * bitmap_possibles
      *
@@ -201,5 +218,27 @@ mod tests {
         single_position_candidate(test_cell.get_mut());
 
         assert!(test_cell.boxes[TOP_LFT].value == Some(1));
+    }
+
+    #[test]
+    fn test_set() {
+        let mut test_cell: Cell = Cell {
+            boxes: [
+                BLANK_BOX,
+                BLANK_BOX,
+                BLANK_BOX,
+                BLANK_BOX,
+                BLANK_BOX,
+                BLANK_BOX,
+                BLANK_BOX,
+                BLANK_BOX,
+                BLANK_BOX
+            ],
+        };
+
+        test_cell.set(ARRAY_OF_9);
+        assert!(test_cell.boxes[TOP_LFT].value == Some(1));
+        assert!(test_cell.boxes[BOT_RHT].value == Some(9));
+
     }
 }
