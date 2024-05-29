@@ -29,7 +29,7 @@ enum Direction {
  * 3. If there is a set of N values that are the only possible in the same N
  *    squares, then remove them as possibles from all other squares (Naked set)
  */
-pub fn naive(sudoku:&mut Sudoku) {
+pub fn naive(sudoku: &mut Sudoku) {
     for i in 0..9 {
         single_position_candidate(sudoku.cells[i].get_mut());
         naked_set(sudoku.cells[i].get_mut());
@@ -137,7 +137,10 @@ pub fn naked_set(mut boxes: Vec<&mut Box>) {
 
             // If we every find more matches than there are facotrs something has gone *very*
             // wrong upstream. It would mean N boxes are vyiung for N+1 values which isn't right.
-            // println!("Matches: {} / Factors: {} / Pattern: {:b} in {:?}", matches, factors, *pattern, boxes);
+            println!(
+                "Matches: {} / Factors: {} / Pattern: {:b} in {:?}",
+                matches, factors, *pattern, boxes
+            );
 
             // boxes.iter()
             //  .filter(|x| x.get_possibles_bits() == *pattern)
@@ -612,5 +615,4 @@ mod tests {
         // Check that the bot right most box got solved as it's the last in the column
         assert_eq!(sudoku.cells[BOT_RHT].boxes[BOT_RHT], Box::from_val(1));
     }
-
 }
