@@ -1,6 +1,7 @@
 use crate::constants::*;
 use crate::sk_box::*;
 use crate::sk_cell::*;
+use crate::solvers;
 use std::fs;
 use std::io::stdout;
 use std::io::BufRead;
@@ -183,10 +184,11 @@ impl Sudoku {
     }
 
     pub fn get_row(&self, row: usize) -> [Box; 9] {
+        assert!(row < 9);
         let cell_offset = (row / 3) * 3;
         let box_offset = (row % 3) * 3;
 
-        println!("{} / {}", cell_offset, box_offset);
+        println!("GetRow: {} / {}", cell_offset, box_offset);
 
         [
             self.cells[cell_offset].boxes[box_offset],
@@ -198,6 +200,26 @@ impl Sudoku {
             self.cells[cell_offset + 2].boxes[box_offset],
             self.cells[cell_offset + 2].boxes[box_offset + 1],
             self.cells[cell_offset + 2].boxes[box_offset + 2],
+        ]
+    }
+
+    pub fn get_col(&self, col: usize) -> [Box; 9] {
+        assert!(col < 9);
+        let cell_offset = col / 3;
+        let box_offset = col % 3;
+
+        println!("GetCol: {} / {}", cell_offset, box_offset);
+
+        [
+            self.cells[cell_offset].boxes[box_offset],
+            self.cells[cell_offset].boxes[box_offset + 3],
+            self.cells[cell_offset].boxes[box_offset + 6],
+            self.cells[cell_offset + 3].boxes[box_offset],
+            self.cells[cell_offset + 3].boxes[box_offset + 3],
+            self.cells[cell_offset + 3].boxes[box_offset + 6],
+            self.cells[cell_offset + 6].boxes[box_offset],
+            self.cells[cell_offset + 6].boxes[box_offset + 3],
+            self.cells[cell_offset + 6].boxes[box_offset + 6],
         ]
     }
 
@@ -336,6 +358,13 @@ impl Sudoku {
             reader.read_line(&mut line).expect("Could not read line.");
             line.clear();
         }
+
+        // Make sure that the "possibles" in each cell don't cross over with the
+        // filled out values already in the cell.
+        solvers::normalise(&mut sudoku);
+
+        // Make sure the sudoku is well formed
+        sudoku.check();
 
         return Ok(sudoku);
     }
@@ -504,6 +533,8 @@ impl Sudoku {
     // Check if the whole sudoku is solved.
     // simply check if all the cells are solved and only return true if none are unsolved
     pub fn solved(&self) -> bool {
+        // Make sure it's consistent before we check it's solved.
+        self.check();
         for cell in self.cells {
             if !cell.solved() {
                 return false;
@@ -511,6 +542,31 @@ impl Sudoku {
         }
 
         return true;
+    }
+
+    // Check if the sudoku overall is still tip-top and internally consistent
+    // Doesn't actually return anything, just triggers all the internal logical
+    // consistency tests
+    pub fn check(&self) {
+        // Check all the cells are coherent.
+        let mut _i: usize = 0;
+        for cell in self.cells {
+            println!("Checking cell {}", _i);
+            cell.check();
+            _i += 1;
+        }
+
+        // Checks each row for coherency
+        for x in 0..9 {
+            let row = self.get_row(x);
+            array_check(row, false);
+        }
+
+        // Checks each col for coherency
+        for x in 0..9 {
+            let col = self.get_col(x);
+            array_check(col, false);
+        }
     }
 }
 
@@ -548,6 +604,7 @@ mod tests {
 
         result.print_ss();
     }
+
     #[test]
     fn test_row_read_mut() {
         let mut sudoku = Sudoku::from_ss("test/simple.ss".to_string()).unwrap();

@@ -40,12 +40,12 @@ impl Cell {
      * that work on sets of 9 boxes can run over.
      */
     pub fn get_mut<'a>(&'a mut self) -> Vec<&mut Box> {
-      let mut result = Vec::new();
-      for sk_box in self.boxes.iter_mut() {
-        result.push(sk_box); 
-      }
+        let mut result = Vec::new();
+        for sk_box in self.boxes.iter_mut() {
+            result.push(sk_box);
+        }
 
-      result
+        result
     }
 
     /**
@@ -191,6 +191,68 @@ impl Cell {
 
         return true;
     }
+
+    pub fn check(&self) {
+        array_check(self.boxes, true)
+    }
+}
+
+// Check if an array of 9 boxes is internally coherent.
+// Doesn't reutrn anything, just asserts and crashes when somethign wrong
+//
+// When called with stricts makes sure possible values and actual line up
+// correctly, when called without just makes sure that actual values do not
+// repeat.
+pub fn array_check(validate: [Box; 9], strict: bool) {
+    println!("validating array: {:?}", validate);
+    for sk_box in validate {
+        sk_box.check();
+    }
+
+    // Now check that each true value turns up only once.
+    // Track this by keepign an array of what actual values we've found
+    // Note the array are 10 items long to allow us to use the values 1-0 directly as indexes.
+    let mut vals_found: [bool; 10] = [
+        false, false, false, false, false, false, false, false, false, false,
+    ];
+
+    // We also want to make sure we've got all other possible values covered
+    let mut poss_found: [bool; 10] = [
+        false, false, false, false, false, false, false, false, false, false,
+    ];
+
+    // And tick them off as we go, making sure none of them turn up twice
+    for sk_box in validate {
+        match sk_box.value {
+            None => {
+                // If the box just has possibles, tick them off as being available
+                // in the line.
+                for x in 1..10 {
+                    if sk_box.poss[x] {
+                        poss_found[x] = true;
+                    }
+                }
+            }
+            Some(found_val) => {
+                // If the box has a value tick it off as found, and make sure it
+                // has not been seen before.
+                let idx = usize::from(found_val);
+                assert!(vals_found[idx] == false);
+                vals_found[idx] = true;
+            }
+        }
+    }
+
+    if strict {
+        println!("found: {:?}", vals_found);
+        println!("poss: {:?}", poss_found);
+
+        // Now the validity test is to make sure that each value turns up as either found
+        // or as a possible - but not both or neither!
+        for x in 1..10 {
+            assert!(vals_found[x] ^ poss_found[x]);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -224,21 +286,13 @@ mod tests {
     fn test_set() {
         let mut test_cell: Cell = Cell {
             boxes: [
-                BLANK_BOX,
-                BLANK_BOX,
-                BLANK_BOX,
-                BLANK_BOX,
-                BLANK_BOX,
-                BLANK_BOX,
-                BLANK_BOX,
-                BLANK_BOX,
-                BLANK_BOX
+                BLANK_BOX, BLANK_BOX, BLANK_BOX, BLANK_BOX, BLANK_BOX, BLANK_BOX, BLANK_BOX,
+                BLANK_BOX, BLANK_BOX,
             ],
         };
 
         test_cell.set(ARRAY_OF_9);
         assert!(test_cell.boxes[TOP_LFT].value == Some(1));
         assert!(test_cell.boxes[BOT_RHT].value == Some(9));
-
     }
 }

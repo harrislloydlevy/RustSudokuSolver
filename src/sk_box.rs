@@ -233,7 +233,7 @@ impl Box {
      *
      * Doesn't retrun anything just asserts if the box is invalid.
      */
-    fn check(self: Box) {
+    pub fn check(self: Box) {
         match self.value {
             Some(x) => {
                 // If we have a confirmed value just check that it's between 1-9 and the possibles
@@ -258,7 +258,6 @@ impl Box {
                 let mut found_true = false;
                 for x in self.poss.iter() {
                     found_true |= x;
-                    println!("{} / {}", x, found_true);
                 }
                 assert!(found_true);
             }

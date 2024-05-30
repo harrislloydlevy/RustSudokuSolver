@@ -16,6 +16,16 @@ enum Direction {
 }
 
 /**
+ * Simply do a quick "normalise" over the sudoku to remove all of the possible
+ * tags against all the boxes for solved values in each cell.
+ */
+pub fn normalise(sudoku: &mut Sudoku) {
+    for i in 0..9 {
+        single_position_candidate(sudoku.cells[i].get_mut());
+    }
+}
+
+/**
  *
  * naive
  *
@@ -405,6 +415,40 @@ mod tests {
     }
 
     #[test]
+    fn test_remove_possibles() {
+        let mut line = Vec::new();
+
+        let mut box1 = BLANK_BOX;
+        let mut box2 = Box::from_val(2);
+        let mut box3 = Box::from_val(3);
+        let mut box4 = Box::from_val(4);
+        let mut box5 = BLANK_BOX;
+        let mut box6 = Box::from_val(6);
+        let mut box7 = Box::from_val(7);
+        let mut box8 = Box::from_val(8);
+        let mut box9 = BLANK_BOX;
+
+        line.push(&mut box1);
+        line.push(&mut box2);
+        line.push(&mut box3);
+        line.push(&mut box4);
+        line.push(&mut box5);
+        line.push(&mut box6);
+        line.push(&mut box7);
+        line.push(&mut box8);
+        line.push(&mut box9);
+
+        // When we normalise a line from a random selection of boxes that are
+        // interconnected we pass in reference to the 9 elements and they are modified
+        // in place.
+        single_position_candidate(line);
+
+        assert!(box1.get_possibles() == [1, 5, 9]);
+        assert!(box5.get_possibles() == [1, 5, 9]);
+        assert!(box9.get_possibles() == [1, 5, 9]);
+    }
+
+    #[test]
     fn test_simple_combo() {
         let result = combo(&[1, 2, 3, 4], 2);
         // Combos we want to see are:
@@ -572,7 +616,9 @@ mod tests {
     pub fn candidate_line_test() {
         let mut sudoku = Sudoku::from_ss("test/candidate_line.ss".to_string()).unwrap();
 
+        sudoku.pretty_print(None);
         candidate_line(&mut sudoku);
+        sudoku.pretty_print(None);
 
         assert_eq!(
             sudoku.get_box(TOP_LFT, TOP_MID),
