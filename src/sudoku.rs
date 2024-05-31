@@ -612,14 +612,14 @@ mod tests {
         {
             let mut row1 = sudoku.get_row_mut(0);
 
-            assert_eq!(*row1[0], Box::from_val(0));
-            assert_eq!(*row1[1], Box::from_val(0));
-            assert_eq!(*row1[2], Box::from_val(0));
+            assert!(row1[0].is_blank());
+            assert!(row1[1].is_blank());
+            assert!(row1[2].is_blank());
             assert_eq!(*row1[3], Box::from_val(2));
             assert_eq!(*row1[4], Box::from_val(6));
-            assert_eq!(*row1[5], Box::from_val(0));
+            assert!(row1[5].is_blank());
             assert_eq!(*row1[6], Box::from_val(7));
-            assert_eq!(*row1[7], Box::from_val(0));
+            assert!(row1[7].is_blank());
             assert_eq!(*row1[8], Box::from_val(1));
 
             // Check updating works at end of test.
@@ -631,13 +631,13 @@ mod tests {
             let mut row3 = sudoku.get_row_mut(3);
             assert_eq!(*row3[0], Box::from_val(8));
             assert_eq!(*row3[1], Box::from_val(2));
-            assert_eq!(*row3[2], BLANK_BOX);
+            assert!(row3[2].is_blank());
             assert_eq!(*row3[3], Box::from_val(1));
-            assert_eq!(*row3[4], BLANK_BOX);
-            assert_eq!(*row3[5], BLANK_BOX);
-            assert_eq!(*row3[6], BLANK_BOX);
+            assert!(row3[4].is_blank());
+            assert!(row3[5].is_blank());
+            assert!(row3[6].is_blank());
             assert_eq!(*row3[7], Box::from_val(4));
-            assert_eq!(*row3[8], BLANK_BOX);
+            assert!(row3[8].is_blank());
 
             // Checked later at end of test
             // This is the top_mid box of the middle cell
@@ -645,13 +645,13 @@ mod tests {
         }
         {
             let mut row7 = sudoku.get_row_mut(7);
-            assert_eq!(*row7[0], Box::from_val(0));
+            assert!(row7[0].is_blank());
             assert_eq!(*row7[1], Box::from_val(4));
-            assert_eq!(*row7[2], Box::from_val(0));
-            assert_eq!(*row7[3], Box::from_val(0));
+            assert!(row7[2].is_blank());
+            assert!(row7[3].is_blank());
             assert_eq!(*row7[4], Box::from_val(5));
-            assert_eq!(*row7[5], Box::from_val(0));
-            assert_eq!(*row7[6], Box::from_val(0));
+            assert!(row7[5].is_blank());
+            assert!(row7[6].is_blank());
             assert_eq!(*row7[7], Box::from_val(3));
             assert_eq!(*row7[8], Box::from_val(6));
 
@@ -670,14 +670,14 @@ mod tests {
 
         {
             let mut col1 = sudoku.get_col_mut(0);
-            assert_eq!(*col1[0], Box::from_val(0));
+            assert!(col1[0].is_blank());
             assert_eq!(*col1[1], Box::from_val(6));
             assert_eq!(*col1[2], Box::from_val(1));
             assert_eq!(*col1[3], Box::from_val(8));
-            assert_eq!(*col1[4], Box::from_val(0));
-            assert_eq!(*col1[5], Box::from_val(0));
-            assert_eq!(*col1[6], Box::from_val(0));
-            assert_eq!(*col1[7], Box::from_val(0));
+            assert!(col1[4].is_blank());
+            assert!(col1[5].is_blank());
+            assert!(col1[6].is_blank());
+            assert!(col1[7].is_blank());
             assert_eq!(*col1[8], Box::from_val(7));
 
             // Set this to test it later.
@@ -688,14 +688,15 @@ mod tests {
         {
             let mut col3 = sudoku.get_col_mut(3);
             assert_eq!(*col3[0], Box::from_val(2));
-            assert_eq!(*col3[1], Box::from_val(0));
-            assert_eq!(*col3[2], Box::from_val(0));
             assert_eq!(*col3[3], Box::from_val(1));
             assert_eq!(*col3[4], Box::from_val(6));
-            assert_eq!(*col3[5], Box::from_val(0));
             assert_eq!(*col3[6], Box::from_val(3));
-            assert_eq!(*col3[7], Box::from_val(0));
-            assert_eq!(*col3[8], Box::from_val(0));
+
+            assert!(col3[1].is_blank());
+            assert!(col3[2].is_blank());
+            assert!(col3[5].is_blank());
+            assert!(col3[7].is_blank());
+            assert!(col3[8].is_blank());
 
             // Checked later at end of test
             // This is the mid-left box of the centre cell.
@@ -704,15 +705,15 @@ mod tests {
 
         {
             let mut col7 = sudoku.get_col_mut(7);
-            assert_eq!(*col7[0], Box::from_val(0));
             assert_eq!(*col7[1], Box::from_val(9));
-            assert_eq!(*col7[2], Box::from_val(0));
             assert_eq!(*col7[3], Box::from_val(4));
-            assert_eq!(*col7[4], Box::from_val(0));
             assert_eq!(*col7[5], Box::from_val(2));
             assert_eq!(*col7[6], Box::from_val(7));
             assert_eq!(*col7[7], Box::from_val(3));
-            assert_eq!(*col7[8], Box::from_val(0));
+            assert!(col7[0].is_blank());
+            assert!(col7[2].is_blank());
+            assert!(col7[4].is_blank());
+            assert!(col7[8].is_blank());
 
             // Checked later at end of test
             // This is mid bottom call of the bottom right cell
@@ -730,35 +731,35 @@ mod tests {
         let sudoku = Sudoku::from_ss("test/simple.ss".to_string()).unwrap();
 
         let row1 = sudoku.get_row(0);
-        assert_eq!(row1[0], Box::from_val(0));
-        assert_eq!(row1[1], Box::from_val(0));
-        assert_eq!(row1[2], Box::from_val(0));
+        assert!(row1[0].is_blank());
+        assert!(row1[1].is_blank());
+        assert!(row1[2].is_blank());
         assert_eq!(row1[3], Box::from_val(2));
         assert_eq!(row1[4], Box::from_val(6));
-        assert_eq!(row1[5], Box::from_val(0));
+        assert!(row1[5].is_blank());
         assert_eq!(row1[6], Box::from_val(7));
-        assert_eq!(row1[7], Box::from_val(0));
+        assert!(row1[7].is_blank());
         assert_eq!(row1[8], Box::from_val(1));
 
         let row3 = sudoku.get_row(3);
         assert_eq!(row3[0], Box::from_val(8));
         assert_eq!(row3[1], Box::from_val(2));
-        assert_eq!(row3[2], BLANK_BOX);
+        assert!(row3[2].is_blank());
         assert_eq!(row3[3], Box::from_val(1));
-        assert_eq!(row3[4], BLANK_BOX);
-        assert_eq!(row3[5], BLANK_BOX);
-        assert_eq!(row3[6], BLANK_BOX);
+        assert!(row3[4].is_blank());
+        assert!(row3[5].is_blank());
+        assert!(row3[6].is_blank());
         assert_eq!(row3[7], Box::from_val(4));
-        assert_eq!(row3[8], BLANK_BOX);
+        assert!(row3[8].is_blank());
 
         let row7 = sudoku.get_row(7);
-        assert_eq!(row7[0], Box::from_val(0));
+        assert!(row7[0].is_blank());
         assert_eq!(row7[1], Box::from_val(4));
-        assert_eq!(row7[2], Box::from_val(0));
-        assert_eq!(row7[3], Box::from_val(0));
+        assert!(row7[2].is_blank());
+        assert!(row7[3].is_blank());
         assert_eq!(row7[4], Box::from_val(5));
-        assert_eq!(row7[5], Box::from_val(0));
-        assert_eq!(row7[6], Box::from_val(0));
+        assert!(row7[5].is_blank());
+        assert!(row7[6].is_blank());
         assert_eq!(row7[7], Box::from_val(3));
     }
 

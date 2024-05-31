@@ -191,6 +191,24 @@ impl Box {
     }
 
     /**
+     * is_unfilled
+     *
+     * Checks if the box doesn't have a value set in it yet.
+     *
+     * Mostly used for testing.
+     */
+    pub fn is_blank(self) -> bool {
+        match self.value {
+            None => {
+                return true;
+            }
+            Some(_unused) => {
+                return false;
+            }
+        }
+    }
+
+    /**
      * get_possibles
      *
      * Get a list of the possilbe values of this box

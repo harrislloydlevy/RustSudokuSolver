@@ -616,7 +616,6 @@ mod tests {
     pub fn candidate_line_test() {
         let mut sudoku = Sudoku::from_ss("test/candidate_line.ss".to_string()).unwrap();
 
-        sudoku.pretty_print(None);
         candidate_line(&mut sudoku);
         sudoku.pretty_print(None);
 
