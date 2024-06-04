@@ -1,5 +1,6 @@
 use crate::constants::*;
 use crate::sk_box::*;
+use crate::sudoku::Sudoku;
 use std::fmt;
 use std::io::stdout;
 // use boxy::{Char, Weight};
@@ -71,14 +72,14 @@ impl Cell {
      *
      * Get a 10 element array where each element is a bitmap of which boxes
      * in the cell as possibles for the value of the arrays index. I.e. index
-     * 4 holds a bitmap of which elements in the box could possibly hold the
+     * 4 holds a bitmap of which boxes in the cell could possibly hold the
      * value 4.
      *
      * This gives us an array we can easily check how often a given value
      * is possible and in whch boxes which is useful for many solving techniques.
      *
      * For example in an cell where the values 1 and 3 where only possible in boxes
-     * at index 4 and 5 and the array would have the value b1010 and indexes 4 and 5.
+     * at index 4 and 5 and the array would have the value b000011000 and indexes 1 and 3
      */
     pub fn bitmap_possibles(&self) -> [u16; 10] {
         let mut result = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -92,9 +93,12 @@ impl Cell {
             // This is the bit pattern we tag in based on possible values.
             // It represents this boxes location, and we add it into
             // the bit pattern for each of the possible values.
-            let bit_pattern = 1 << idx;
+            let bit_pattern = 1 << (idx);
 
             for poss_val in cur_box.get_possibles() {
+                //println!("Value {} possible at {}", poss_val, idx + 1);
+                //println!("Bitmap {} going into {}", bit_pattern, poss_val);
+                //println!("");
                 result[usize::from(poss_val)] = result[usize::from(poss_val)] | bit_pattern;
             }
         }
@@ -294,5 +298,21 @@ mod tests {
         test_cell.set(ARRAY_OF_9);
         assert!(test_cell.boxes[TOP_LFT].value == Some(1));
         assert!(test_cell.boxes[BOT_RHT].value == Some(9));
+    }
+
+    #[test]
+    fn test_bitmap_possibles() {
+        let sudoku = Sudoku::from_ss("test/simple.ss".to_string()).unwrap();
+
+        let possibles = sudoku.cells[0].bitmap_possibles();
+
+        // Value 1 shoudl only be possible in cell 7.
+        assert_eq!(possibles[1], 1 << (7 - 1));
+
+        // Value 2 shoudl only be possible in cells 1, 2, 3, 6, and 9
+        assert_eq!(possibles[2], 0b100100111);
+
+        // Value 3 shoudl only be possible in cells 1, 2, 3, 6, and 9
+        assert_eq!(possibles[2], 0b100100111);
     }
 }
