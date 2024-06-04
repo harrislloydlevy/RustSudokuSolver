@@ -231,6 +231,7 @@ fn combo(pool: &[u16], k: u16) -> Vec<u16> {
  * continuous horizontal or vertical lines. Used here as static data to loop over
  * later to reduce the need to repeat code for similiar patterns.
  */
+#[derive(Debug)]
 struct ConstantLine {
     // Pattern of boxes to match to check
     bit_pattern: u16,
@@ -242,7 +243,7 @@ struct ConstantLine {
 
 const CONSTANT_LINES: [ConstantLine; 6] = [
     ConstantLine {
-        bit_pattern: 0b0111000000,
+        bit_pattern: 0b0000000111,
         direction: Direction::HOR,
         index: 0,
     },
@@ -252,12 +253,12 @@ const CONSTANT_LINES: [ConstantLine; 6] = [
         index: 1,
     },
     ConstantLine {
-        bit_pattern: 0b0000000111,
+        bit_pattern: 0b0111000000,
         direction: Direction::HOR,
         index: 2,
     },
     ConstantLine {
-        bit_pattern: 0b0100100100,
+        bit_pattern: 0b0001001001,
         direction: Direction::VER,
         index: 0,
     },
@@ -267,7 +268,7 @@ const CONSTANT_LINES: [ConstantLine; 6] = [
         index: 1,
     },
     ConstantLine {
-        bit_pattern: 0b0001001001,
+        bit_pattern: 0b0100100100,
         direction: Direction::VER,
         index: 2,
     },
@@ -302,6 +303,7 @@ pub fn candidate_line(sudoku: &mut Sudoku) {
      * an inverted mask to show that it's not also out side those areas.
      */
     for cell_idx in 0..9 {
+        println!("Checking cell {} for candidate line", cell_idx);
         let cell = sudoku.cells[cell_idx];
         // Get bitmaps of possible values from 1-9, each array index has a bitmap
         // of possible values that location could be in this cell.
@@ -311,6 +313,17 @@ pub fn candidate_line(sudoku: &mut Sudoku) {
         // for that value only being possible in a given row or column
         for candidate_value in 1..10 {
             let value_bitmap = possibles[candidate_value];
+            println!(
+                "Looking for cand_line for values {} in pattern {:b}",
+                candidate_value, value_bitmap
+            );
+
+            // Skip those values where there's only one possible location
+            // these are easier/faster to catch with out naive nethods and
+            // complicate debugging.
+            if (value_bitmap & (value_bitmap - 1)) == 0 {
+                continue;
+            }
 
             for checkline in CONSTANT_LINES.iter() {
                 // Check that the value has values in the location bitmap
@@ -324,6 +337,10 @@ pub fn candidate_line(sudoku: &mut Sudoku) {
                 if (value_bitmap & checkline.bit_pattern) != 0
                     && (value_bitmap & !checkline.bit_pattern) == 0
                 {
+                    println!(
+                        "Candidate line found for value {} in cell {} using checkline {:?}",
+                        candidate_value, cell_idx, checkline,
+                    );
                     // We have found a candidate line! the candidate_value by matching
                     // the checkbitmap and only the check bitmap must be only in one row
                     // and/or column.
@@ -616,21 +633,67 @@ mod tests {
     pub fn candidate_line_test() {
         let mut sudoku = Sudoku::from_ss("test/candidate_line.ss".to_string()).unwrap();
 
+        sudoku.pretty_print(None);
         candidate_line(&mut sudoku);
         sudoku.pretty_print(None);
 
+        // Make sure the '456' possible in the middle of the mid top row have blocked out
+        // both sides of it
         assert_eq!(
-            sudoku.get_box(TOP_LFT, TOP_MID),
-            Box::from_possibles([1, 2, 3, 4, 5, 6].to_vec())
+            sudoku.get_box(TOP_LFT, MID_LFT),
+            Box::from_possibles([1, 2, 3, 7, 8, 9].to_vec())
         );
 
         assert_eq!(
             sudoku.get_box(TOP_LFT, MID_MID),
+            Box::from_possibles([1, 2, 3, 7, 8, 9].to_vec())
+        );
+
+        assert_eq!(
+            sudoku.get_box(TOP_LFT, MID_RHT),
+            Box::from_possibles([1, 2, 3, 7, 8, 9].to_vec())
+        );
+
+        // Make sure the '789' possible in the middle of the mid right row have blocked out
+        // above and below
+        assert_eq!(
+            sudoku.get_box(TOP_RHT, MID_LFT),
+            Box::from_possibles([1, 2, 3, 7, 8, 9].to_vec())
+        );
+
+        assert_eq!(
+            sudoku.get_box(TOP_RHT, MID_MID),
             Box::from_possibles([1, 2, 3].to_vec())
         );
 
         assert_eq!(
-            sudoku.get_box(TOP_LFT, BOT_MID),
+            sudoku.get_box(TOP_RHT, MID_RHT),
+            Box::from_possibles([1, 2, 3, 7, 8, 9].to_vec())
+        );
+
+        assert_eq!(
+            sudoku.get_box(TOP_RHT, TOP_MID),
+            Box::from_possibles([1, 2, 3, 4, 5, 6].to_vec())
+        );
+
+        assert_eq!(
+            sudoku.get_box(TOP_RHT, BOT_MID),
+            Box::from_possibles([1, 2, 3, 4, 5, 6].to_vec())
+        );
+
+        // Make sure that 789 and removed as variables from the middle row of rht borttom right box
+        assert_eq!(
+            sudoku.get_box(BOT_RHT, TOP_MID),
+            Box::from_possibles([1, 2, 3, 4, 5, 6].to_vec())
+        );
+
+        assert_eq!(
+            sudoku.get_box(BOT_RHT, MID_MID),
+            Box::from_possibles([1, 2, 3, 4, 5, 6].to_vec())
+        );
+
+        assert_eq!(
+            sudoku.get_box(BOT_RHT, BOT_MID),
             Box::from_possibles([1, 2, 3, 4, 5, 6].to_vec())
         );
     }
