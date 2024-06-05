@@ -71,7 +71,6 @@ impl Sudoku {
         // To find the offset within the cell mod by 3, then * 3
         // to be either 0, 3, or 6 within cell. Remember index from 0.
         let box_offset = (row % 3) * 3;
-        // println!("Row: {} CO: {} / BO: {}", row, cell_offset, box_offset);
         let mut cell_iter = self.cells.iter_mut();
 
         // Fast forward the cell iterator to the cell before the one we want
@@ -83,7 +82,6 @@ impl Sudoku {
         for _x in 0..3 {
             let cell = cell_iter.next().unwrap();
 
-            // println!("Cell {}: {}", cell_offset+x, cell);
             let mut box_iter = cell.boxes.iter_mut();
 
             // Fast forward to the right row of the cell if necessary
@@ -136,7 +134,6 @@ impl Sudoku {
         // To find the offset within the cell just mod by 3.
         let box_offset = col % 3;
 
-        // println!("Col: {} CO: {} / BO: {}", col, cell_offset, box_offset);
         let mut cell_iter = self.cells.iter_mut();
 
         // Fast forward the cell iterator so the next cell it returns is the one
@@ -152,7 +149,6 @@ impl Sudoku {
         for x in 0..3 {
             let cell = cell_iter.next().unwrap();
 
-            //println!("Cell {}: {}", cell_offset+(x*3), cell);
             let mut box_iter = cell.boxes.iter_mut();
 
             // Again we have to "fast forward, but now within the cell to the
@@ -188,8 +184,6 @@ impl Sudoku {
         let cell_offset = (row / 3) * 3;
         let box_offset = (row % 3) * 3;
 
-        println!("GetRow: {} / {}", cell_offset, box_offset);
-
         [
             self.cells[cell_offset].boxes[box_offset],
             self.cells[cell_offset].boxes[box_offset + 1],
@@ -207,8 +201,6 @@ impl Sudoku {
         assert!(col < 9);
         let cell_offset = col / 3;
         let box_offset = col % 3;
-
-        println!("GetCol: {} / {}", cell_offset, box_offset);
 
         [
             self.cells[cell_offset].boxes[box_offset],
@@ -551,7 +543,6 @@ impl Sudoku {
         // Check all the cells are coherent.
         let mut _i: usize = 0;
         for cell in self.cells {
-            println!("Checking cell {}", _i);
             cell.check();
             _i += 1;
         }

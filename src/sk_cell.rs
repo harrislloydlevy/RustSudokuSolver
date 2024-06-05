@@ -96,9 +96,6 @@ impl Cell {
             let bit_pattern = 1 << (idx);
 
             for poss_val in cur_box.get_possibles() {
-                //println!("Value {} possible at {}", poss_val, idx + 1);
-                //println!("Bitmap {} going into {}", bit_pattern, poss_val);
-                //println!("");
                 result[usize::from(poss_val)] = result[usize::from(poss_val)] | bit_pattern;
             }
         }
@@ -208,7 +205,6 @@ impl Cell {
 // correctly, when called without just makes sure that actual values do not
 // repeat.
 pub fn array_check(validate: [Box; 9], strict: bool) {
-    println!("validating array: {:?}", validate);
     for sk_box in validate {
         sk_box.check();
     }
@@ -248,9 +244,6 @@ pub fn array_check(validate: [Box; 9], strict: bool) {
     }
 
     if strict {
-        println!("found: {:?}", vals_found);
-        println!("poss: {:?}", poss_found);
-
         // Now the validity test is to make sure that each value turns up as either found
         // or as a possible - but not both or neither!
         for x in 1..10 {

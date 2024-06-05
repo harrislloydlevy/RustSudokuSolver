@@ -376,7 +376,6 @@ mod tests {
     fn test_ok_value_box() {
         // Ensure box with a single value passes
         let ok_value_box = Box::from_val(2);
-        println!("OK BOX: {:?}", ok_value_box);
         ok_value_box.check();
     }
 

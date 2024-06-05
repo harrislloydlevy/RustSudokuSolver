@@ -165,21 +165,12 @@ fn naked_set_array(mut boxes: Vec<&mut Box>) {
 
             // If we every find more matches than there are facotrs something has gone *very*
             // wrong upstream. It would mean N boxes are vyiung for N+1 values which isn't right.
-            println!(
-                "Matches: {} / Factors: {} / Pattern: {:b} in {:?}",
-                matches, factors, *pattern, boxes
-            );
-
-            // boxes.iter()
-            //  .filter(|x| x.get_possibles_bits() == *pattern)
-            //  .for_each(|x| println!("{:?} matches {:#010b}", x, pattern));
             assert!(matches <= factors);
 
             // If there are exactly as many as  we are looking for (hardcoded to 4 right now)
             //then remove this bit pattern as a possibility from all other boxes in the collection.
             if matches == factors {
                 // Find the boxes that didn't match the pattern exactly.
-                // println!("Removing {:#010b} from {:?}", pattern, boxes);
                 boxes
                     .iter_mut()
                     .filter(|x| x.get_possibles_bits() != *pattern)
@@ -201,16 +192,13 @@ fn naked_set_array(mut boxes: Vec<&mut Box>) {
  *          e.g. 000011 would mean a combination of 1 and 2, 1011, a combiantions of 4, 2, and 1, 100001 = 6 and 1.
  */
 fn combo(pool: &[u16], k: u16) -> Vec<u16> {
-    //println!("{:?} for {}", pool, k);
     let mut result = Vec::new();
 
     if k > (pool.len() as u16) {
-        //println!("{} < {} - Terminating", k, pool.len());
         return result;
     }
 
     for i in 0..pool.len() {
-        //println!("{} of {} for {}", i, pool.len(), k);
         if k == 1 {
             result.push(ON << pool[i]);
         } else {
@@ -230,7 +218,6 @@ fn combo(pool: &[u16], k: u16) -> Vec<u16> {
             // numbers above.
             //
             // I FUCKING LOVE RECURSION!
-            //println!("FInd subresults starting with {} from {} for {}", i, pool.len(), k);
             let subresults = combo(&pool[i + 1..], k - 1);
 
             for element in subresults {
@@ -321,7 +308,6 @@ pub fn candidate_line(sudoku: &mut Sudoku) {
      * an inverted mask to show that it's not also out side those areas.
      */
     for cell_idx in 0..9 {
-        println!("Checking cell {} for candidate line", cell_idx);
         let cell = sudoku.cells[cell_idx];
         // Get bitmaps of possible values from 1-9, each array index has a bitmap
         // of possible values that location could be in this cell.
@@ -331,10 +317,6 @@ pub fn candidate_line(sudoku: &mut Sudoku) {
         // for that value only being possible in a given row or column
         for candidate_value in 1..10 {
             let value_bitmap = possibles[candidate_value];
-            println!(
-                "Looking for cand_line for values {} in pattern {:b}",
-                candidate_value, value_bitmap
-            );
 
             // Skip those values where there's only one possible location
             // these are easier/faster to catch with out naive nethods and
@@ -355,10 +337,6 @@ pub fn candidate_line(sudoku: &mut Sudoku) {
                 if (value_bitmap & checkline.bit_pattern) != 0
                     && (value_bitmap & !checkline.bit_pattern) == 0
                 {
-                    println!(
-                        "Candidate line found for value {} in cell {} using checkline {:?}",
-                        candidate_value, cell_idx, checkline,
-                    );
                     // We have found a candidate line! the candidate_value by matching
                     // the checkbitmap and only the check bitmap must be only in one row
                     // and/or column.
@@ -488,9 +466,6 @@ mod tests {
         let result = combo(&[1, 2, 3, 4], 2);
         // Combos we want to see are:
         // 1,2 / 1,3 / 1,4 / 2,3 / 2,4 / 3,4
-        for element in result.iter() {
-            println!("{:#018b}, ", element);
-        }
         assert_eq!(result.len(), 6);
         assert!(result.contains(&(ON << 1 | ON << 2)));
         assert!(result.contains(&(ON << 1 | ON << 3)));
@@ -505,9 +480,6 @@ mod tests {
         let result = combo(&[1, 2, 3, 4, 5, 6, 7, 8, 9], 4);
         // Combos we want to see are:
         // 1,2 / 1,3 / 1,4 / 2,3 / 2,4 / 3,4
-        for element in result.iter() {
-            println!("{:#018b}, ", element);
-        }
         // Not checking everyone. There are 126 possible combinations of 4 objects from
         // a pool of 9 so justt check that.
         assert_eq!(result.len(), 126);
