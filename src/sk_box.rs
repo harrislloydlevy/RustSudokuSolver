@@ -342,43 +342,43 @@ impl Box {
     }
 }
 
-#[test]
-fn test_ok_value_box() {
-    // Ensure box with a single value passes
-    let ok_value_box = Box::from_val(2);
-    println!("OK BOX: {:?}", ok_value_box);
-    ok_value_box.check();
-}
-
-#[test]
-#[should_panic]
-// Checks that a box with no possible values will fail
-fn test_no_poss_box() {
-    let mut ok_no_value = BLANK_BOX;
-    ok_no_value.poss = BOX_EMPTY_POSS;
-
-    // This box has no value so should fail it's check.
-    ok_no_value.check();
-}
-
-#[test]
-#[should_panic]
-// Checks that values outside of the 0-9 range fail
-fn test_bad_value_box() {
-    let bad_value = Box {
-        value: Some(11),
-        poss: [
-            false, false, false, false, false, false, false, false, false, false,
-        ],
-    };
-
-    // This box has no value so should pass all it's test.
-    bad_value.check();
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_ok_value_box() {
+        // Ensure box with a single value passes
+        let ok_value_box = Box::from_val(2);
+        println!("OK BOX: {:?}", ok_value_box);
+        ok_value_box.check();
+    }
+
+    #[test]
+    #[should_panic]
+    // Checks that a box with no possible values will fail
+    fn test_no_poss_box() {
+        let mut ok_no_value = BLANK_BOX;
+        ok_no_value.poss = BOX_EMPTY_POSS;
+
+        // This box has no value so should fail it's check.
+        ok_no_value.check();
+    }
+
+    #[test]
+    #[should_panic]
+    // Checks that values outside of the 0-9 range fail
+    fn test_bad_value_box() {
+        let bad_value = Box {
+            value: Some(11),
+            poss: [
+                false, false, false, false, false, false, false, false, false, false,
+            ],
+        };
+
+        // This box has no value so should pass all it's test.
+        bad_value.check();
+    }
 
     #[test]
     #[should_panic]
