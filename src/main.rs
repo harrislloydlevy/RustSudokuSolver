@@ -20,13 +20,13 @@ fn main() {
     while !sudoku.solved() {
         sudoku.pretty_print(None);
 
-        // Keep a copy of the original for comparison printing and to check if any progress made.
         let orig = sudoku;
 
         // Try naive solving
         println!("Apply Naive Solve");
-        solvers::naive(&mut sudoku);
-        sudoku.pretty_print(Some(orig));
+        let pre_single_pos = sudoku;
+        solvers::single_position(&mut sudoku);
+        sudoku.pretty_print(Some(pre_single_pos));
 
         // Then try some more advanced/expensive methods
         println!("Apply Candidate Line");

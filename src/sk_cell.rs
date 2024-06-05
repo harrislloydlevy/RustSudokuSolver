@@ -281,7 +281,7 @@ mod tests {
             ],
         };
 
-        single_position_candidate(test_cell.get_mut());
+        single_position_array(test_cell.get_mut());
 
         assert!(test_cell.boxes[TOP_LFT].value == Some(1));
     }

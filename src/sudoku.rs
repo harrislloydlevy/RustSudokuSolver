@@ -774,7 +774,7 @@ mod tests {
         // sudoku.cells[0].boxes[0].remove_possible_value(1);
         // sudoku.cells[0].boxes[0].remove_possible_value(5);
         // sudoku.cells[0].boxes[0].remove_possible_value(9);
-        solvers::naive(&mut sudoku);
+        solvers::single_position(&mut sudoku);
 
         sudoku.pretty_print(None);
 
@@ -789,7 +789,7 @@ mod tests {
         // TODO: Change test to comare outcome to a an expected file of output.
         let unsolved = Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
         let mut solved = unsolved;
-        solvers::naive(&mut solved);
+        solvers::single_position(&mut solved);
 
         solved.pretty_print(Some(unsolved));
 

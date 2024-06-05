@@ -21,13 +21,13 @@ enum Direction {
  */
 pub fn normalise(sudoku: &mut Sudoku) {
     for i in 0..9 {
-        single_position_candidate(sudoku.cells[i].get_mut());
+        single_position_array(sudoku.cells[i].get_mut());
     }
 }
 
 /**
  *
- * naive
+ * single_position
  *
  * Perform one round of the most naive solving of the sudoku possible.
  * Only applies the three basic set solving techniques to each cell, row
@@ -36,25 +36,43 @@ pub fn normalise(sudoku: &mut Sudoku) {
  *    from every other box.
  * 2. If there is only one box that could hold a particular value then
  *    set that box to the value. (Single position candidate)
+ */
+pub fn single_position(sudoku: &mut Sudoku) {
+    for i in 0..9 {
+        single_position_array(sudoku.cells[i].get_mut());
+    }
+
+    for i in 0..9 {
+        // How does this not need a mut???
+        single_position_array(sudoku.get_row_mut(i));
+    }
+
+    for i in 0..9 {
+        // How does this not need a mut???
+        single_position_array(sudoku.get_col_mut(i));
+    }
+}
+
+/**
+ *
+ * naked_set
+ *
  * 3. If there is a set of N values that are the only possible in the same N
  *    squares, then remove them as possibles from all other squares (Naked set)
  */
-pub fn naive(sudoku: &mut Sudoku) {
+pub fn naked_set(sudoku: &mut Sudoku) {
     for i in 0..9 {
-        single_position_candidate(sudoku.cells[i].get_mut());
-        naked_set(sudoku.cells[i].get_mut());
+        naked_set_array(sudoku.cells[i].get_mut());
     }
 
     for i in 0..9 {
         // How does this not need a mut???
-        single_position_candidate(sudoku.get_row_mut(i));
-        naked_set(sudoku.get_row_mut(i));
+        naked_set_array(sudoku.get_row_mut(i));
     }
 
     for i in 0..9 {
         // How does this not need a mut???
-        single_position_candidate(sudoku.get_col_mut(i));
-        naked_set(sudoku.get_col_mut(i));
+        naked_set_array(sudoku.get_col_mut(i));
     }
 }
 
@@ -71,7 +89,7 @@ pub fn naive(sudoku: &mut Sudoku) {
  * When run over every cell, row, and column it implmeents the single Position
  * and single_candidate logic.
  */
-pub fn single_position_candidate(mut boxes: Vec<&mut Box>) {
+pub fn single_position_array(mut boxes: Vec<&mut Box>) {
     // pos_vals is the bit mask of still possible values in this set of interlinked
     // boxes.
     //
@@ -105,7 +123,7 @@ pub fn single_position_candidate(mut boxes: Vec<&mut Box>) {
 }
 
 /**
- * naked_set
+ * naked_set_array
  *
  * Looks for combinations of boxes where there are only X boxes that can
  * only be a set combination of X values, then remove that possible combination
@@ -118,7 +136,7 @@ pub fn single_position_candidate(mut boxes: Vec<&mut Box>) {
  * Groups of 5 or 6 are possible, but so rare and computationally expensive we don't bother.
  * https://www.sudokuoftheday.com/techniques/naked-pairs-triples/
  */
-pub fn naked_set(mut boxes: Vec<&mut Box>) {
+fn naked_set_array(mut boxes: Vec<&mut Box>) {
     /*
      * The logic we will follow for this function is as follows:
      *  - Iterate over every number of factorials we'll look for 2, 3, and 4
@@ -426,7 +444,7 @@ mod tests {
         // When we normalise a line from a random selection of boxes that are
         // interconnected we pass in reference to the 9 elements and they are modified
         // in place.
-        single_position_candidate(line);
+        single_position_array(line);
 
         assert!(box1.value == Some(1));
     }
@@ -458,7 +476,7 @@ mod tests {
         // When we normalise a line from a random selection of boxes that are
         // interconnected we pass in reference to the 9 elements and they are modified
         // in place.
-        single_position_candidate(line);
+        single_position_array(line);
 
         assert!(box1.get_possibles() == [1, 5, 9]);
         assert!(box5.get_possibles() == [1, 5, 9]);
@@ -519,7 +537,7 @@ mod tests {
         line.push(&mut box8);
         line.push(&mut box9);
 
-        naked_set(line);
+        naked_set_array(line);
 
         assert_eq!(box3.get_possibles(), [3]);
         assert_eq!(box4.get_possibles(), [4]);
@@ -554,7 +572,7 @@ mod tests {
         line.push(&mut box8);
         line.push(&mut box9);
 
-        naked_set(line);
+        naked_set_array(line);
 
         assert_eq!(box4.get_possibles(), [4]);
         assert_eq!(box5.get_possibles(), [5]);
@@ -588,7 +606,7 @@ mod tests {
         line.push(&mut box8);
         line.push(&mut box9);
 
-        naked_set(line);
+        naked_set_array(line);
 
         assert_eq!(box5.get_possibles(), [5]);
         assert_eq!(box6.get_possibles(), [6]);
@@ -621,7 +639,7 @@ mod tests {
         line.push(&mut box8);
         line.push(&mut box9);
 
-        naked_set(line);
+        naked_set_array(line);
 
         assert_eq!(box6.get_possibles(), [6]);
         assert_eq!(box7.get_possibles(), [7]);
@@ -704,15 +722,15 @@ mod tests {
 
         // How does this not need a mut???
         let row = sudoku.get_row_mut(0);
-        single_position_candidate(row);
+        single_position_array(row);
         assert_eq!(sudoku.cells[TOP_LFT].boxes[TOP_LFT], Box::from_val(1));
     }
 
     #[test]
-    fn test_naive_sudoku_solve() {
+    fn test_single_position_sudoku_solve() {
         let mut sudoku = Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
 
-        naive(&mut sudoku);
+        single_position(&mut sudoku);
 
         // Check that the top left most box got solved as it's the last in the row
         assert_eq!(sudoku.cells[TOP_LFT].boxes[TOP_LFT], Box::from_val(1));
