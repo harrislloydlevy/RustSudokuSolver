@@ -6,7 +6,7 @@ use std::io::stdout;
 
 // TODO: Change the from_possibles fucntions to use slices instead of vecs.
 
-#[derive(PartialEq, Debug, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone)]
 pub struct Box {
     pub value: Option<u8>,
     pub poss: [bool; 10],
@@ -342,6 +342,32 @@ impl Box {
     }
 }
 
+impl fmt::Debug for Box {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.value {
+            Some(x) => {
+                write!(f, "[    {}    ]", x)
+            }
+            None => {
+                // Write out possible values as list of numbers from 1 to 9, with a "." if value is not possible
+                write!(
+                    f,
+                    "[{}{}{}{}{}{}{}{}{}]",
+                    if self.poss[1] { "1" } else { "." },
+                    if self.poss[2] { "2" } else { "." },
+                    if self.poss[3] { "3" } else { "." },
+                    if self.poss[4] { "4" } else { "." },
+                    if self.poss[5] { "5" } else { "." },
+                    if self.poss[6] { "6" } else { "." },
+                    if self.poss[7] { "7" } else { "." },
+                    if self.poss[8] { "8" } else { "." },
+                    if self.poss[9] { "9" } else { "." }
+                )
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -430,5 +456,17 @@ mod tests {
         let test_box = Box::from_possibles([1, 3, 9].to_vec());
 
         assert_eq!(test_box.get_possibles_bits(), ON << 1 | ON << 3 | ON << 9);
+    }
+
+    #[test]
+    fn test_debug_print() {
+        let test_box = Box::from_possibles([1, 3, 9].to_vec());
+        assert_eq!(format!("{:#?}", test_box), "[1.3.....9]");
+
+        let test_box = Box::from_possibles([1, 9].to_vec());
+        assert_eq!(format!("{:#?}", test_box), "[1.......9]");
+
+        let test_box = Box::from_val(1);
+        assert_eq!(format!("{:#?}", test_box), "[    1    ]");
     }
 }
