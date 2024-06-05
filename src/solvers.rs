@@ -77,7 +77,7 @@ pub fn naked_set(sudoku: &mut Sudoku) {
 }
 
 /**
- * single_position_candidate
+ * single_position_array
  *
  * This is the dumbest solving algorithim there is.
  *

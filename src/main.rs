@@ -23,10 +23,15 @@ fn main() {
         let orig = sudoku;
 
         // Try naive solving
-        println!("Apply Naive Solve");
+        println!("Apply Single Position");
         let pre_single_pos = sudoku;
         solvers::single_position(&mut sudoku);
         sudoku.pretty_print(Some(pre_single_pos));
+
+        println!("Apply Naked Set");
+        let pre_ns = sudoku;
+        solvers::naked_set(&mut sudoku);
+        sudoku.pretty_print(Some(pre_ns));
 
         // Then try some more advanced/expensive methods
         println!("Apply Candidate Line");
