@@ -630,60 +630,60 @@ mod tests {
         // Make sure the '456' possible in the middle of the mid top row have blocked out
         // both sides of it
         assert_eq!(
-            sudoku.get_box(TOP_LFT, MID_LFT),
+            sudoku.lookup(TOP_LFT, MID_LFT),
             Box::from_possibles([1, 2, 3, 7, 8, 9].to_vec())
         );
 
         assert_eq!(
-            sudoku.get_box(TOP_LFT, MID_MID),
+            sudoku.lookup(TOP_LFT, MID_MID),
             Box::from_possibles([1, 2, 3, 7, 8, 9].to_vec())
         );
 
         assert_eq!(
-            sudoku.get_box(TOP_LFT, MID_RHT),
+            sudoku.lookup(TOP_LFT, MID_RHT),
             Box::from_possibles([1, 2, 3, 7, 8, 9].to_vec())
         );
 
         // Make sure the '789' possible in the middle of the mid right row have blocked out
         // above and below
         assert_eq!(
-            sudoku.get_box(TOP_RHT, MID_LFT),
+            sudoku.lookup(TOP_RHT, MID_LFT),
             Box::from_possibles([1, 2, 3, 7, 8, 9].to_vec())
         );
 
         assert_eq!(
-            sudoku.get_box(TOP_RHT, MID_MID),
+            sudoku.lookup(TOP_RHT, MID_MID),
             Box::from_possibles([1, 2, 3].to_vec())
         );
 
         assert_eq!(
-            sudoku.get_box(TOP_RHT, MID_RHT),
+            sudoku.lookup(TOP_RHT, MID_RHT),
             Box::from_possibles([1, 2, 3, 7, 8, 9].to_vec())
         );
 
         assert_eq!(
-            sudoku.get_box(TOP_RHT, TOP_MID),
+            sudoku.lookup(TOP_RHT, TOP_MID),
             Box::from_possibles([1, 2, 3, 4, 5, 6].to_vec())
         );
 
         assert_eq!(
-            sudoku.get_box(TOP_RHT, BOT_MID),
+            sudoku.lookup(TOP_RHT, BOT_MID),
             Box::from_possibles([1, 2, 3, 4, 5, 6].to_vec())
         );
 
         // Make sure that 789 and removed as variables from the middle row of rht borttom right box
         assert_eq!(
-            sudoku.get_box(BOT_RHT, TOP_MID),
+            sudoku.lookup(BOT_RHT, TOP_MID),
             Box::from_possibles([1, 2, 3, 4, 5, 6].to_vec())
         );
 
         assert_eq!(
-            sudoku.get_box(BOT_RHT, MID_MID),
+            sudoku.lookup(BOT_RHT, MID_MID),
             Box::from_possibles([1, 2, 3, 4, 5, 6].to_vec())
         );
 
         assert_eq!(
-            sudoku.get_box(BOT_RHT, BOT_MID),
+            sudoku.lookup(BOT_RHT, BOT_MID),
             Box::from_possibles([1, 2, 3, 4, 5, 6].to_vec())
         );
     }

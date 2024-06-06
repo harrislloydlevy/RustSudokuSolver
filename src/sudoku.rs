@@ -185,15 +185,15 @@ impl Sudoku {
         let box_offset = (row % 3) * 3;
 
         [
-            self.cells[cell_offset].boxes[box_offset],
-            self.cells[cell_offset].boxes[box_offset + 1],
-            self.cells[cell_offset].boxes[box_offset + 2],
-            self.cells[cell_offset + 1].boxes[box_offset],
-            self.cells[cell_offset + 1].boxes[box_offset + 1],
-            self.cells[cell_offset + 1].boxes[box_offset + 2],
-            self.cells[cell_offset + 2].boxes[box_offset],
-            self.cells[cell_offset + 2].boxes[box_offset + 1],
-            self.cells[cell_offset + 2].boxes[box_offset + 2],
+            self.lookup(cell_offset, box_offset),
+            self.lookup(cell_offset, box_offset + 1),
+            self.lookup(cell_offset, box_offset + 2),
+            self.lookup(cell_offset + 1, box_offset),
+            self.lookup(cell_offset + 1, box_offset + 1),
+            self.lookup(cell_offset + 1, box_offset + 2),
+            self.lookup(cell_offset + 2, box_offset),
+            self.lookup(cell_offset + 2, box_offset + 1),
+            self.lookup(cell_offset + 2, box_offset + 2),
         ]
     }
 
@@ -203,21 +203,21 @@ impl Sudoku {
         let box_offset = col % 3;
 
         [
-            self.cells[cell_offset].boxes[box_offset],
-            self.cells[cell_offset].boxes[box_offset + 3],
-            self.cells[cell_offset].boxes[box_offset + 6],
-            self.cells[cell_offset + 3].boxes[box_offset],
-            self.cells[cell_offset + 3].boxes[box_offset + 3],
-            self.cells[cell_offset + 3].boxes[box_offset + 6],
-            self.cells[cell_offset + 6].boxes[box_offset],
-            self.cells[cell_offset + 6].boxes[box_offset + 3],
-            self.cells[cell_offset + 6].boxes[box_offset + 6],
+            self.lookup(cell_offset, box_offset),
+            self.lookup(cell_offset, box_offset + 3),
+            self.lookup(cell_offset, box_offset + 6),
+            self.lookup(cell_offset + 3, box_offset),
+            self.lookup(cell_offset + 3, box_offset + 3),
+            self.lookup(cell_offset + 3, box_offset + 6),
+            self.lookup(cell_offset + 6, box_offset),
+            self.lookup(cell_offset + 6, box_offset + 3),
+            self.lookup(cell_offset + 6, box_offset + 6),
         ]
     }
 
     /**
      *
-     * get_box
+     * lookup
      *
      * This function returns the box at a set cell and box index from the
      * sudoku. Removes the incovencine and bad prtactice of direclt accessing the
@@ -225,7 +225,7 @@ impl Sudoku {
      *
      * Note - doesn't return a ref, but a copy so cannot be used to modify sudoku!
      */
-    pub fn get_box(&self, cell_idx: usize, box_idx: usize) -> Box {
+    pub fn lookup(&self, cell_idx: usize, box_idx: usize) -> Box {
         self.cells[cell_idx].boxes[box_idx]
     }
 
@@ -650,9 +650,10 @@ mod tests {
             *row7[8] = Box::from_val(2);
         }
 
-        assert_eq!(sudoku.cells[TOP_RHT].boxes[TOP_RHT].value, Some(9));
-        assert_eq!(sudoku.cells[MID_MID].boxes[TOP_LFT].value, Some(4));
-        assert_eq!(sudoku.cells[BOT_RHT].boxes[MID_RHT].value, Some(2));
+        // Now check that we can update values using these calls.
+        assert_eq!(sudoku.lookup(TOP_RHT, TOP_RHT).value, Some(9));
+        assert_eq!(sudoku.lookup(MID_MID, TOP_LFT).value, Some(4));
+        assert_eq!(sudoku.lookup(BOT_RHT, MID_RHT).value, Some(2));
     }
 
     #[test]
@@ -712,9 +713,9 @@ mod tests {
         }
 
         // Now check that we can update values using these calls.
-        assert_eq!(sudoku.cells[TOP_LFT].boxes[BOT_LFT].value, Some(9));
-        assert_eq!(sudoku.cells[MID_MID].boxes[MID_LFT].value, Some(3));
-        assert_eq!(sudoku.cells[BOT_RHT].boxes[BOT_MID].value, Some(2));
+        assert_eq!(sudoku.lookup(TOP_LFT, BOT_LFT).value, Some(9));
+        assert_eq!(sudoku.lookup(MID_MID, MID_LFT).value, Some(3));
+        assert_eq!(sudoku.lookup(BOT_RHT, BOT_MID).value, Some(2));
     }
 
     #[test]
