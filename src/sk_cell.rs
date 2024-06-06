@@ -1,6 +1,5 @@
 use crate::constants::*;
 use crate::sk_box::*;
-use crate::sudoku::Sudoku;
 use std::fmt;
 use std::io::stdout;
 // use boxy::{Char, Weight};
@@ -256,6 +255,7 @@ pub fn array_check(validate: [Box; 9], strict: bool) {
 mod tests {
     use super::*;
     use crate::solvers::*;
+    use crate::sudoku::Sudoku;
 
     #[test]
     // Check that we can solve a box when there's only one value left.
