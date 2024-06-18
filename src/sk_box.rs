@@ -330,6 +330,14 @@ impl Box {
         }
     }
 
+    pub fn get_c(&self) -> char {
+        match self.value {
+            // Little hacky but 48 is '0' in ascii
+            Some(x) => ('0' as u8 + x) as char,
+            None => '.',
+        }
+    }
+
     pub fn solved(&self) -> bool {
         match self.value {
             Some(_x) => {

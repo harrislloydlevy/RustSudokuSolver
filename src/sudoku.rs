@@ -1,4 +1,5 @@
 use crate::constants::*;
+use crate::sk_box;
 use crate::sk_box::*;
 use crate::sk_cell::*;
 use crate::solvers;
@@ -323,24 +324,10 @@ impl Sudoku {
                         let cell_idx: usize = cur_cel_row * 3 + cur_cel_col;
                         let box_idx: usize = cur_box_row * 3 + cur_box_col;
 
-                        // Initiate a new box to write into the Sudoku.
-                        let value: Box;
-
-                        //
-                        if char == '.' {
-                            value = BLANK_BOX;
-                        } else {
-                            let digit = char.to_digit(10).expect("Expected number or '.'");
-                            assert!(
-                                digit >= 1 && digit <= 9,
-                                "Expected a number between 1 and 9"
-                            );
-                            value = Box::from_val(digit as u8);
-                        }
                         // To convert row and col to an index just times
                         // the row by 3. This matches our structure of a 9 element
                         // linear array represeting a 3x3 array
-                        sudoku.cells[cell_idx].boxes[box_idx] = value;
+                        sudoku.cells[cell_idx].boxes[box_idx] = Self::char_to_box(char);
                     }
                 }
                 line.clear();
@@ -359,6 +346,80 @@ impl Sudoku {
         sudoku.check();
 
         return Ok(sudoku);
+    }
+
+    /**
+     *
+     * from_line
+     *
+     * Read a sudoku from a simple line definition, often found in files tha
+     * contain lots of sudokus, one of each line.
+     *
+     * Just 81 numbers in a row for each value.
+     */
+    pub fn from_line(input: String) -> Sudoku {
+        let mut result: Sudoku = BLANK_SUDOKU;
+        // I feel like a bad person for indexing from 1.
+        let mut row = 1;
+        let mut col = 1;
+
+        assert!(input.len() == 81);
+
+        for c in input.chars() {
+            result.box_set(row, col, Self::char_to_box(c));
+            row += 1;
+            if row == 10 {
+                row = 1;
+                col += 1;
+            }
+        }
+        assert!(row == 1);
+        assert!(col == 10);
+        result
+    }
+
+    fn char_to_box(char: char) -> Box {
+        if char == '.' {
+            BLANK_BOX
+        } else {
+            let digit = char.to_digit(10).expect("Expected number or '.'");
+            assert!(
+                digit >= 1 && digit <= 9,
+                "Expected a number between 1 and 9"
+            );
+            Box::from_val(digit as u8)
+        }
+    }
+
+    // TODO: Only public for testing. Shoudl work out how to avoid it.
+    pub fn col_row_to_cell_idx(col: usize, row: usize) -> (usize, usize) {
+        // Main job here is to turn the 1-9 absolute column and row
+        // within the sudoku into a cell index (cells 1-9 within) and then box index (1-9 within)
+        // Lots of mod 3 functions coming our way!
+
+        // First get which cell it is. Simple row mod 3 will find if it's row 1, 2, or 3 and times
+        // by 3 the result. Plus col mod 3 to find which one in the column of cells.
+        let cell = ((col - 1) / 3) + (((row - 1) / 3) * 3);
+
+        // Now to get the index within the cell.
+        // Col within the cell is the cells absolute value mod 3
+        let col_in_cell = (col - 1) % 3;
+        let row_in_cell = (row - 1) % 3;
+        let idx = col_in_cell + (row_in_cell * 3);
+
+        (cell, idx)
+    }
+
+    pub fn box_set(&mut self, col: usize, row: usize, sk_box: Box) {
+        let (cell, idx) = Self::col_row_to_cell_idx(col, row);
+
+        self.cells[cell].boxes[idx] = sk_box;
+    }
+
+    pub fn get_c(&self, col: usize, row: usize) -> char {
+        let (cell, idx) = Self::col_row_to_cell_idx(col, row);
+
+        self.cells[cell].boxes[idx].get_c()
     }
 
     pub fn print_ss(&self) {
@@ -795,5 +856,42 @@ mod tests {
 
         let sudoku = Sudoku::from_ss("test/solved.ss".to_string()).unwrap();
         assert!(sudoku.solved());
+    }
+
+    #[test]
+    fn test_from_line() {
+        let sud_line = "\
+            6.2.5....\
+            .....4.3.\
+            .........\
+            43...8...\
+            .1....2..\
+            ......7..\
+            5..27....\
+            .......81\
+            ...6.....";
+
+        let sudoku = Sudoku::from_line(sud_line.to_string());
+        assert_eq!(sudoku.get_c(1, 1), '6');
+        assert_eq!(sudoku.get_c(5, 1), '5');
+        assert_eq!(sudoku.get_c(9, 9), '.');
+    }
+
+    #[test]
+    fn test_col_row_cell_idx() {
+        assert_eq!(Sudoku::col_row_to_cell_idx(1, 1), (0, 0));
+        assert_eq!(Sudoku::col_row_to_cell_idx(2, 5), (3, 4));
+        assert_eq!(Sudoku::col_row_to_cell_idx(5, 5), (4, 4));
+        assert_eq!(Sudoku::col_row_to_cell_idx(7, 3), (2, 6));
+        assert_eq!(Sudoku::col_row_to_cell_idx(7, 5), (5, 3));
+        assert_eq!(Sudoku::col_row_to_cell_idx(8, 7), (8, 1));
+        assert_eq!(Sudoku::col_row_to_cell_idx(9, 9), (8, 8));
+
+        //for row in 1..10 {
+        //    for col in 1..10 {
+        //        let (cell, idx) = Sudoku::col_row_to_cell_idx(col, row);
+        //        println!("[{},{}] => [{}][{}]", col, row, cell, idx);
+        //    }
+        //}
     }
 }
