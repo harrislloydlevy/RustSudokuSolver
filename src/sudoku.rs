@@ -1,5 +1,4 @@
 use crate::constants::*;
-use crate::sk_box;
 use crate::sk_box::*;
 use crate::sk_cell::*;
 use crate::solvers;
@@ -357,7 +356,7 @@ impl Sudoku {
      *
      * Just 81 numbers in a row for each value.
      */
-    pub fn from_line(input: String) -> Sudoku {
+    pub fn from_line(input: &String) -> Sudoku {
         let mut result: Sudoku = BLANK_SUDOKU;
         // I feel like a bad person for indexing from 1.
         let mut row = 1;
@@ -375,6 +374,44 @@ impl Sudoku {
         }
         assert!(row == 1);
         assert!(col == 10);
+        result
+    }
+
+    /**
+     * Read every sudoku in a file and return them in a big array.
+     */
+    pub fn from_txt(filename: String) -> Vec<Sudoku> {
+        let mut result = Vec::new();
+
+        let file = fs::File::open(filename);
+        let file = match file {
+            Ok(file) => file,
+            Err(error) => panic!("Problem opening the file: {:?}", error),
+        };
+
+        let mut reader = std::io::BufReader::new(file);
+        let mut line = String::new();
+
+        while dbg!(reader.read_line(&mut line).is_ok()) {
+            println!("Line is {}", line);
+            // Skip any lines less than 81 long.
+            if line.len() == 84 {
+                assert_eq!(line.pop(), Some('\n'));
+                assert_eq!(line.pop(), Some('\r'));
+            } else if line.len() == 82 {
+                assert_eq!(line.pop(), Some('\n'));
+            } else if line.len() == 0 {
+                // Reading 0 length data shows we've reacehd the end of the file
+                break;
+            } else {
+                // Any length by 81 is an error - nothing else allowed int eh file but sudokus.
+                assert!(false);
+            }
+
+            result.push(Self::from_line(&line));
+            line.clear();
+        }
+
         result
     }
 
@@ -821,7 +858,7 @@ mod tests {
         // This is a shitty test - not sure how to test that console output matches a
         // expected outcome!
         //
-        // TODO: Change test to comare outcome to a an expected file of output.
+        // TODO: Change test to compare outcome to a an expected file of output.
         let mut sudoku = Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
 
         // sudoku.cells[0].boxes[0].remove_possible_value(1);
@@ -871,7 +908,7 @@ mod tests {
             .......81\
             ...6.....";
 
-        let sudoku = Sudoku::from_line(sud_line.to_string());
+        let sudoku = Sudoku::from_line(&sud_line.to_string());
         assert_eq!(sudoku.get_c(1, 1), '6');
         assert_eq!(sudoku.get_c(5, 1), '5');
         assert_eq!(sudoku.get_c(9, 9), '.');
@@ -893,5 +930,19 @@ mod tests {
         //        println!("[{},{}] => [{}][{}]", col, row, cell, idx);
         //    }
         //}
+    }
+
+    #[test]
+    fn test_read_txt_file() {
+        let result = Sudoku::from_txt("test/top95.txt".to_string());
+
+        assert_eq!(result.len(), 95);
+    }
+
+    #[test]
+    fn test_read_txt_file() {
+        let result = Sudoku::from_txt("test/top95.txt".to_string());
+
+        assert_eq!(result.len(), 95);
     }
 }
