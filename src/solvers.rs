@@ -15,6 +15,25 @@ enum Direction {
     VER,
 }
 
+// Useful enum for how many times a value has been found
+#[derive(PartialEq, Debug, Copy, Clone)]
+enum Found {
+    NONE,
+    ONCE,
+    MANY,
+}
+
+#[derive(PartialEq, Debug, Copy, Clone)]
+struct PossValWhere {
+    index: Option<u8>,
+    found: Found,
+}
+
+pub const BLANK_PVW: PossValWhere = PossValWhere {
+    index: None,
+    found: Found::NONE,
+};
+
 /**
  * Simply do a quick "normalise" over the sudoku to remove all of the possible
  * tags against all the boxes for solved values in each cell.
@@ -99,6 +118,19 @@ pub fn single_position_array(mut boxes: Vec<&mut Box>) {
     // We iterate over the boxes remove confirmed values from all of them
     // returning a map of only the possible values in this set of boxes.
     let mut poss_vals: u16 = 0b1111111110;
+
+    // For finding out which values could only occur in one location we setup an
+    // array of which boxes could be each value. The array is indexed by value (1-9)
+    // and each element in it points to a struct taht says the index within the array that holds the
+    // single element that could be that value. Plus an additional element that
+    // says whether the value has been found yet, found once, or more than once.
+    // Obvioulsy we only care if it's found once! but need a ternary value to differentiate
+    // not found.
+    //
+    // As always I am lazy, so all arrays indexed by possible value have 10 elemented with the
+    // 0th elemnent unused.
+    let mut last_poss_vals: [PossValWhere; 10] = [BLANK_PVW; 10];
+
     for x in boxes.iter() {
         // If we have an actual value we blank out that possible value from the map
         // otherwise ignore the uncionfirmed values.
@@ -112,12 +144,42 @@ pub fn single_position_array(mut boxes: Vec<&mut Box>) {
     // Now in poss_vals we have an bitmap that represents all the values that nothing
     // else can be. So we apply that to each of the values in the 9 array
     // set that are still looking for a value.
-    for unsolved_box in boxes.iter_mut() {
+    for cur_idx in 0..9 {
+        let unsolved_box = &mut boxes[cur_idx];
         // If we have an unconfirmed values remove the possibilities foumd, otherwise
         // for solved boxes we just skip over.
         match unsolved_box.value {
             Some(_unused) => {}
-            None => unsolved_box.remove_possible_bits(poss_vals),
+            None => {
+                unsolved_box.remove_possible_bits(poss_vals);
+
+                for poss_val in unsolved_box.get_possibles() {
+                    let lpv = &mut last_poss_vals[poss_val as usize];
+                    match (*lpv).found {
+                        Found::NONE => {
+                            lpv.found = Found::ONCE;
+                            lpv.index = Some(cur_idx as u8);
+                        }
+                        Found::ONCE => {
+                            lpv.found = Found::MANY;
+                            lpv.index = None;
+                        }
+                        Found::MANY => {}
+                    }
+                }
+            }
+        }
+    }
+
+    // We are now done interating over the boxes, and can check the LPV
+    // array for any elements that have only been found once.
+    for cur_val in 1..=9 {
+        let lpv = last_poss_vals[cur_val];
+
+        if lpv.found == Found::ONCE {
+            // We have a value that had been found once! The LPV will tell us the index in the
+            // boxes.
+            boxes[(lpv.index.unwrap()) as usize].set_val(cur_val as u8);
         }
     }
 }
