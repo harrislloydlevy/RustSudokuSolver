@@ -495,7 +495,7 @@ impl Sudoku {
      * diff - If provided print cells that differ from this sudoku a
      *        different color
      */
-    pub fn pretty_print(&self, diff: Option<Sudoku>) {
+    pub fn pretty_print(&self, diff: Option<Sudoku>, commentary: Option<String>) {
         // Each box is a 3x3 cell of text. If no confirmed values each
         // potential is showin in it's own position (1-9) and excluded
         // values are shown as a .
@@ -540,7 +540,11 @@ impl Sudoku {
         // going forward.
         // Write the top line
 
-        println!("╔═══════════╦═══════════╦═══════════╗");
+        print!(
+            "╔═══════════╦═══════════╦═══════════╗ {}",
+            commentary.unwrap_or("".to_string())
+        );
+        println!("");
         // For each row of boxes in the sudoku we start a loop
         for row in 1..=9 {
             // If it's a "special" row we print some in-between decorations
@@ -559,11 +563,29 @@ impl Sudoku {
                         for val_col in 1..=3 {
                             // Each of the 3 columns of possible values in the
                             // cell
+
+                            let cell = ((cell_col - 1) * 3) + box_col;
+                            // If there is a difference between the printed sudoku
+                            // and the diff sudoku then print a special char
+                            // to make the value red.
+                            //
+                            let orig_box = self.get_box(cell, row);
+                            let mut changed = match diff {
+                                None => false,
+                                Some(compare) => orig_box != compare.get_box(cell, row),
+                            };
+
+                            if changed {
+                                print!("\x1b[93m");
+                            }
                             print!(
                                 "{}",
-                                self.get_box((cell_col - 1) * 3 + box_col, row)
+                                self.get_box(cell, row)
                                     .get_pretty_c((val_row - 1) * 3 + val_col)
                             );
+                            if changed {
+                                print!("\x1b[0m")
+                            }
                         }
                         if box_col != 3 {
                             print!("|");
@@ -619,15 +641,27 @@ impl Sudoku {
     }
 
     pub fn solve(&mut self) {
+        self.pretty_print(None, Some("Solving".to_string()));
+        self.check();
+        let mut i = 0;
         while !self.solved() {
             let orig = *self;
+            let mut prev = *self;
 
             // Try naive solving
             solvers::single_position(self);
-            solvers::naked_set(self);
-            solvers::candidate_line(self);
+            self.pretty_print(Some(prev), Some("Applied Single Position".to_string()));
             self.check();
-            self.pretty_print(None);
+
+            prev = *self;
+            solvers::naked_set(self);
+            self.pretty_print(Some(prev), Some("Applied Naked Set".to_string()));
+            self.check();
+
+            prev = *self;
+            solvers::candidate_line(self);
+            self.pretty_print(Some(prev), Some("Applied Candidate Line".to_string()));
+            self.check();
 
             // If we made no progress at all over the whole last round - then we don't have the
             // abiliyt to solve this sudoku.
@@ -635,7 +669,8 @@ impl Sudoku {
                 println!("Could not solve sudoku.");
                 return;
             } else {
-                println!("Another round!");
+                println!("Going for round {}", i);
+                i += 1;
             }
         }
     }
@@ -848,8 +883,6 @@ mod tests {
         // sudoku.cells[0].boxes[0].remove_possible_value(9);
         solvers::single_position(&mut sudoku);
 
-        sudoku.pretty_print(None);
-
         assert!(true);
     }
 
@@ -862,8 +895,6 @@ mod tests {
         let unsolved = Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
         let mut solved = unsolved;
         solvers::single_position(&mut solved);
-
-        solved.pretty_print(Some(unsolved));
 
         assert!(true);
     }
@@ -930,6 +961,19 @@ mod tests {
         for mut sudoku in result {
             sudoku.solve();
             assert!(sudoku.solved());
+        }
+    }
+
+    #[test]
+    fn test_solvable() {
+        let result = Sudoku::from_txt("test/solvable.txt".to_string());
+        let mut i = 1;
+
+        for mut sudoku in result {
+            sudoku.solve();
+            assert!(sudoku.solved());
+            println!("Solved {} Sudokus!", i);
+            i += 1;
         }
     }
 }

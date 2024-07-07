@@ -18,7 +18,7 @@ fn main() {
     sudoku.print_ss();
 
     while !sudoku.solved() {
-        sudoku.pretty_print(None);
+        sudoku.pretty_print(None, None);
 
         let orig = sudoku;
 
@@ -26,18 +26,18 @@ fn main() {
         println!("Apply Single Position");
         let pre_single_pos = sudoku;
         solvers::single_position(&mut sudoku);
-        sudoku.pretty_print(Some(pre_single_pos));
+        sudoku.pretty_print(Some(pre_single_pos), None);
 
         println!("Apply Naked Set");
         let pre_ns = sudoku;
         solvers::naked_set(&mut sudoku);
-        sudoku.pretty_print(Some(pre_ns));
+        sudoku.pretty_print(Some(pre_ns), None);
 
         // Then try some more advanced/expensive methods
         println!("Apply Candidate Line");
         let pre_candidate = sudoku;
         solvers::candidate_line(&mut sudoku);
-        sudoku.pretty_print(Some(pre_candidate));
+        sudoku.pretty_print(Some(pre_candidate), None);
 
         // If we made no progress at all over the whole last round - then we don't have the
         // abiliyt to solve this sudoku.

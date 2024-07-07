@@ -58,10 +58,6 @@ pub fn normalise(sudoku: &mut Sudoku) {
  */
 pub fn single_position(sudoku: &mut Sudoku) {
     for i in 0..9 {
-        single_position_array(sudoku.cells[i].get_mut());
-    }
-
-    for i in 0..9 {
         // How does this not need a mut???
         single_position_array(sudoku.get_row_mut(i));
     }
@@ -70,6 +66,11 @@ pub fn single_position(sudoku: &mut Sudoku) {
         // How does this not need a mut???
         single_position_array(sudoku.get_col_mut(i));
     }
+
+    for i in 0..9 {
+        single_position_array(sudoku.cells[i].get_mut());
+    }
+    sudoku.check();
 }
 
 /**
@@ -685,9 +686,7 @@ mod tests {
     pub fn candidate_line_test() {
         let mut sudoku = Sudoku::from_ss("test/candidate_line.ss".to_string()).unwrap();
 
-        sudoku.pretty_print(None);
         candidate_line(&mut sudoku);
-        sudoku.pretty_print(None);
 
         // Make sure the '456' possible in the middle of the mid top row have blocked out
         // both sides of it

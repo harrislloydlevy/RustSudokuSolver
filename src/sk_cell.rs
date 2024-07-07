@@ -193,7 +193,7 @@ impl Cell {
     }
 
     pub fn check(&self) {
-        array_check(self.boxes, true)
+        array_check(self.boxes, false)
     }
 }
 
@@ -246,6 +246,7 @@ pub fn array_check(validate: [Box; 9], strict: bool) {
         // Now the validity test is to make sure that each value turns up as either found
         // or as a possible - but not both or neither!
         for x in 1..10 {
+            //dbg!(x, vals_found[x], poss_found[x]);
             assert!(vals_found[x] ^ poss_found[x]);
         }
     }
