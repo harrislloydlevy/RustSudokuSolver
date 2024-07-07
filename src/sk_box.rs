@@ -224,6 +224,10 @@ impl Box {
         result
     }
 
+    pub fn is_poss(&self, value: u8) -> bool {
+        self.poss[value as usize]
+    }
+
     /**
      *
      * get_possible_bits
@@ -330,11 +334,38 @@ impl Box {
         }
     }
 
+    // Get the single charaachter "c" version of the box for pretty printing.
     pub fn get_c(&self) -> char {
         match self.value {
             // Little hacky but 48 is '0' in ascii
             Some(x) => ('0' as u8 + x) as char,
             None => '.',
+        }
+    }
+
+    // Get a singel char to print to show for a given possible valye
+    // If the box isn't solved shows a dot if not possible and the value
+    // if it is, if it is solved show a space for every value except 5
+    // which will show the actual value of 1-9.
+    //
+    // This is usefult to draw pretty print versions that look like below.
+    //
+    // .23|   |
+    // ...| 3 | 7
+    // .89|   |
+    //
+    //
+    pub fn get_pretty_c(&self, value: u8) -> char {
+        if self.solved() {
+            if value == 5 {
+                ('0' as u8 + self.value.unwrap()) as char
+            } else {
+                ' '
+            }
+        } else if self.is_poss(value) {
+            ('0' as u8 + value) as char
+        } else {
+            '.'
         }
     }
 

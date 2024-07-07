@@ -374,6 +374,8 @@ impl Sudoku {
         }
         assert!(row == 1);
         assert!(col == 10);
+
+        solvers::normalise(&mut result);
         result
     }
 
@@ -392,8 +394,7 @@ impl Sudoku {
         let mut reader = std::io::BufReader::new(file);
         let mut line = String::new();
 
-        while dbg!(reader.read_line(&mut line).is_ok()) {
-            println!("Line is {}", line);
+        while reader.read_line(&mut line).is_ok() {
             // Skip any lines less than 81 long.
             if line.len() == 84 {
                 assert_eq!(line.pop(), Some('\n'));
@@ -454,9 +455,13 @@ impl Sudoku {
     }
 
     pub fn get_c(&self, col: usize, row: usize) -> char {
+        self.get_box(col, row).get_c()
+    }
+
+    pub fn get_box(&self, col: usize, row: usize) -> Box {
         let (cell, idx) = Self::col_row_to_cell_idx(col, row);
 
-        self.cells[cell].boxes[idx].get_c()
+        self.cells[cell].boxes[idx]
     }
 
     pub fn print_ss(&self) {
@@ -491,13 +496,6 @@ impl Sudoku {
      *        different color
      */
     pub fn pretty_print(&self, diff: Option<Sudoku>) {
-        // This fucntion works by printing up the scaffolding of the
-        // sudoku, then calling the cell pretty_print functions and
-        // box pretty_print functions to draw in the provided location
-        //
-        // It's always assumed that the cursor is at the top-left corner
-        // of the space to draw in.
-        //
         // Each box is a 3x3 cell of text. If no confirmed values each
         // potential is showin in it's own position (1-9) and excluded
         // values are shown as a .
@@ -542,82 +540,44 @@ impl Sudoku {
         // going forward.
         // Write the top line
 
-        // Now write the sides of the top boxes
-        for cell_index in 0..3 {
-            if cell_index == 0 {
-                // Drawing the first row so print the first line
-                println!("╔═══════════╦═══════════╦═══════════╗");
+        println!("╔═══════════╦═══════════╦═══════════╗");
+        // For each row of boxes in the sudoku we start a loop
+        for row in 1..=9 {
+            // If it's a "special" row we print some in-between decorations
+            if row == 4 || row == 7 {
+                println!("╠═══════════╬═══════════╬═══════════╣");
             }
 
-            // Draw the sides of the boxes
-            for _i in 0..11 {
-                println!("║           ║           ║           ║");
-            }
-
-            // If the very end of the sudoku draw the bottom, otherwise
-            // draw a middle cross line
-
-            if cell_index == 2 {
-                print!("╚");
-            } else {
-                print!("╠");
-            }
-
-            for row_index in 0..3 {
-                for _n in 0..11 {
-                    print!("═");
-                }
-
-                if row_index != 2 {
-                    if cell_index != 2 {
-                        print!("╬");
-                    } else {
-                        print!("╩");
+            // Each row of the sudoku actually has 3 rows of text for printing out the sudoku box
+            // in boxes of 3x3
+            for val_row in 1..=3 {
+                print!("║");
+                for cell_col in 1..=3 {
+                    // Each of the 3 columns of cells in the sudoku
+                    for box_col in 1..=3 {
+                        // Each of the 3 colums of boxes in the cell
+                        for val_col in 1..=3 {
+                            // Each of the 3 columns of possible values in the
+                            // cell
+                            print!(
+                                "{}",
+                                self.get_box((cell_col - 1) * 3 + box_col, row)
+                                    .get_pretty_c((val_row - 1) * 3 + val_col)
+                            );
+                        }
+                        if box_col != 3 {
+                            print!("|");
+                        }
                     }
+                    print!("║");
                 }
+                println!("");
             }
-
-            if cell_index != 2 {
-                print!("╣");
-            } else {
-                print!("╝");
+            if row != 3 && row != 6 && row != 9 {
+                println!("║---+---+---║---+---+---║---+---+---║");
             }
-            println!("");
         }
-
-        // Now we have to move through the 9 cells adjsuting the cursor to the top-left
-        // each time and then calling the cell pretty print function to fill it out.
-        //
-        // First step is to get back to the top-left corner. We're at the line after
-        // the whoel sudoku was printed now, and each cell is 11 boxes inside, plus the
-        // bottom and intervening rows,
-        //
-        // we assume each cell draw function sets the cursor back to the same position
-        // as it was at the start.
-        execute!(stdout(), MoveUp((11 * 3) + 3)).ok();
-
-        for row_idx in 0..3 {
-            execute!(stdout(), MoveToColumn(1)).ok();
-            for col_idx in 0..3 {
-                let cell_idx = (row_idx * 3) + col_idx;
-
-                // Here we pretty_print the contained cell, but we also have to
-                // provide the cell to compare against when doign that printing
-                // if it was provided to us.
-                match diff {
-                    None => self.get_cell(cell_idx).pretty_print(None),
-                    Some(diff_sudoku) => self
-                        .get_cell(cell_idx)
-                        .pretty_print(Some(diff_sudoku.get_cell(cell_idx))),
-                }
-                execute!(stdout(), MoveRight(12)).ok();
-            }
-            execute!(stdout(), MoveDown(12)).ok();
-        }
-
-        // End by moving back to start of colum as loop above should already
-        // have ended up with us past the sudoku output.
-        execute!(stdout(), MoveToColumn(1)).ok();
+        println!("╚═══════════╩═══════════╩═══════════╝");
     }
 
     // Check if the whole sudoku is solved.
@@ -655,6 +615,28 @@ impl Sudoku {
         for x in 0..9 {
             let col = self.get_col(x);
             array_check(col, false);
+        }
+    }
+
+    pub fn solve(&mut self) {
+        while !self.solved() {
+            let orig = *self;
+
+            // Try naive solving
+            solvers::single_position(self);
+            solvers::naked_set(self);
+            solvers::candidate_line(self);
+            self.check();
+            self.pretty_print(None);
+
+            // If we made no progress at all over the whole last round - then we don't have the
+            // abiliyt to solve this sudoku.
+            if orig == *self {
+                println!("Could not solve sudoku.");
+                return;
+            } else {
+                println!("Another round!");
+            }
         }
     }
 }
@@ -940,9 +922,14 @@ mod tests {
     }
 
     #[test]
-    fn test_read_txt_file() {
+    fn test_solve_txt_file() {
         let result = Sudoku::from_txt("test/top95.txt".to_string());
 
         assert_eq!(result.len(), 95);
+
+        for mut sudoku in result {
+            sudoku.solve();
+            assert!(sudoku.solved());
+        }
     }
 }
