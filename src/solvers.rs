@@ -347,7 +347,7 @@ pub fn candidate_line(sudoku: &mut Sudoku) {
                         // First we get the indexes of all cells in this row, just take a div 3 of
                         // the index to find the leftmost box in the row, and then add 1 and 2 to
                         // find the next.
-                        let left_idx = cell_idx / 3;
+                        let left_idx = (cell_idx / 3) * 3;
                         let cells_in_row = vec![left_idx, left_idx + 1, left_idx + 2];
 
                         // Now loop over these cells, removing the candidate value from the appropriate
