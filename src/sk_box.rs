@@ -30,6 +30,8 @@ const BOX_EMPTY_POSS: [bool; 10] = [
     false, false, false, false, false, false, false, false, false, false,
 ];
 
+const POSSIBLE_BIT_MASK: u16 = 0b1111111110;
+
 impl Box {
     /**
      * box_value
@@ -83,6 +85,18 @@ impl Box {
     pub fn remove_possible_bits(&mut self, possible_bits: u16) {
         let curr_poss = self.get_possibles_bits();
         self.set_possibles_bits(curr_poss & possible_bits);
+    }
+
+    /**
+     * invert_possible_bits
+     *
+     * Take a bitmap of possible bits and flip it's meanings while keeping it in the right
+     * format and the "0" value bit low.
+     */
+    pub fn invert_possible_bits(possible_bits: u16) -> u16 {
+        let mut inverted_bits = !possible_bits;
+        inverted_bits = inverted_bits & POSSIBLE_BIT_MASK;
+        inverted_bits
     }
 
     /**
@@ -162,7 +176,7 @@ impl Box {
         assert!(possibles != 0);
         // Ensure no bits set above the 9th position by checking bitmask
         // against 01111111110;
-        assert!((possibles & 0b1111111110) == possibles);
+        assert!((possibles & POSSIBLE_BIT_MASK) == possibles);
 
         // Check if there is only a single bit set
         if possibles == possibles & (!(possibles - 1)) {
@@ -378,6 +392,13 @@ impl Box {
                 return false;
             }
         }
+    }
+
+    // Needed becayuse we can't apply the ?
+    // operator to a value directly, must come from
+    // a call
+    pub fn get_value(&self) -> Option<u8> {
+        self.value
     }
 }
 

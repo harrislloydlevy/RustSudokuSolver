@@ -1,8 +1,7 @@
-use crate::constants::*;
 use crate::sk_box::*;
+use std::collections::VecDeque;
 use std::fmt;
 use std::io::stdout;
-// use boxy::{Char, Weight};
 
 use crossterm::{cursor::*, execute};
 
@@ -197,6 +196,40 @@ impl Cell {
     }
 }
 
+// Note - uses a mut type because most callers have an set of mut values to work with
+// adn wecan't cast from mut to non-mut
+//
+// And to use this in the combo value later it needs to return an array, that
+// has the format of being an array of possible values, 9 long, but with 0s
+// at the end if less than 9 numbers are possible.
+//
+// For this purpose we pass the length with the array as well to allow the
+// caller to generate a slice easily.
+//
+// I KNOW THIS LOOKS BAD! But it sort of makes sense for the caller and how it's
+// used.
+pub fn unsolved_values(input: &Vec<&mut Box>) -> ([u8; 9], usize) {
+    let mut solved: [bool; 10] = [false; 10];
+    let mut result: [u8; 9] = [0; 9];
+
+    // Annoyed I can't think of a nice way to do this on one line with lambdas
+    // that didn't involve multiple iterations of the same array
+    input
+        .iter()
+        .filter(|x| x.solved())
+        .for_each(|x| solved[x.get_value().expect("Not a real value") as usize] = true);
+
+    let mut j: usize = 0;
+    for i in 1..=9 {
+        if solved[i] == false {
+            result[j] = i as u8;
+            j += 1;
+        }
+    }
+
+    (result, j)
+}
+
 // Check if an array of 9 boxes is internally coherent.
 // Doesn't reutrn anything, just asserts and crashes when somethign wrong
 //
@@ -255,6 +288,7 @@ pub fn array_check(validate: [Box; 9], strict: bool) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::constants::*;
     use crate::solvers::*;
     use crate::sudoku::Sudoku;
 

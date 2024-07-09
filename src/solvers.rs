@@ -1,6 +1,8 @@
 use crate::constants::*;
 use crate::sk_box::Box;
+use crate::sk_cell;
 use crate::sudoku::Sudoku;
+use std::collections::VecDeque;
 
 /*
  * Solving technique names taken from sudokuoftheday.com. Logic and code is mine
@@ -212,33 +214,51 @@ fn naked_set_array(mut boxes: Vec<&mut Box>) {
      */
     assert!(boxes.len() == 9);
 
-    for factors in vec![2, 3, 4, 5] {
-        let bit_patterns = combo(&[1, 2, 3, 4, 5, 6, 7, 8, 9], factors);
+    // Filter out solved values in this collection of 9. The tick off the alogorithim and give
+    // false positives (and add to the cost of the operation because that combo function adds up
+    // fast!)
+    let (unsolved_values, len) = sk_cell::unsolved_values(&boxes);
+
+    // TODO: Add logic to sometimes apply up to 5 factors if stuck - but it's overkill
+    // everytime with current test set,
+    for factors in vec![2, 3, 4] {
+        let bit_patterns = combo(&unsolved_values[0..len], factors);
 
         for pattern in bit_patterns.iter() {
-            // Get all the boxes in our input that match that bit pattern exactly.
-            // TODO: This is actually not complete for triple/quads! For example a set of
-            //       three boxes could be {1,4}/{4,7},{7,1} and so this set of three would
-            //       only ever be 1 4 or 7, so qualiyf as a naked triple, but this wouldn't
-            //       be caught by this test.
-            let matches = boxes
+            // Get all the boxes in our input that match any part of the bit pattern.
+            let matched_all_count: u16 = boxes
                 .iter()
-                .filter(|x| x.get_possibles_bits() == *pattern)
+                .filter(|x| (x.get_possibles_bits() & *pattern) > 0)
                 .count() as u16;
 
-            // If we every find more matches than there are facotrs something has gone *very*
-            // wrong upstream. It would mean N boxes are vyiung for N+1 values which isn't right.
-            assert!(matches <= factors);
+            // If they turn up in more boxes than there are factors (i.e. there are
+            // 3 factors and they cross 5 boxes.) then there's nothing we can remove
+            // here and off we go.
+            if matched_all_count > factors {
+                continue;
+            }
+
+            // If however there are *less* matches than boxes something has gone
+            // very wrong because that means there is something like 4 values
+            // and they only show up in 3 boxes!
+            assert!(matched_all_count == factors);
 
             // If there are exactly as many as  we are looking for (hardcoded to 4 right now)
             //then remove this bit pattern as a possibility from all other boxes in the collection.
-            if matches == factors {
-                // Find the boxes that didn't match the pattern exactly.
-                boxes
-                    .iter_mut()
-                    .filter(|x| x.get_possibles_bits() != *pattern)
-                    .for_each(|x| x.remove_impossible_bits(*pattern));
-            }
+            let remove_values = Box::invert_possible_bits(*pattern);
+            println!(
+                "Found isolated {:?} Removing {:?}",
+                Box::from_possibles_bits(*pattern),
+                Box::from_possibles_bits(remove_values)
+            );
+            println!("Pre remove  {:?}", boxes);
+
+            // Find the boxe
+            boxes
+                .iter_mut()
+                .filter(|x| (x.get_possibles_bits() & *pattern) > 0)
+                .for_each(|x| x.remove_impossible_bits(remove_values));
+            println!("Post remove {:?}", boxes);
         }
     }
 }
@@ -250,11 +270,11 @@ fn naked_set_array(mut boxes: Vec<&mut Box>) {
  * Code not copied/pasted from rosetta-code, but algorithim and ideas from there.
  *
  * pool: The list of numbers left to choose from
- * need: The number of combinations needed
+ * k: The number of values from the pool needed in each combo. Must be at least 2
  * returns: A list of u16s, each one is a bitmap the number of needed values from the pool of possible values
  *          e.g. 000011 would mean a combination of 1 and 2, 1011, a combiantions of 4, 2, and 1, 100001 = 6 and 1.
  */
-fn combo(pool: &[u16], k: u16) -> Vec<u16> {
+fn combo(pool: &[u8], k: u16) -> Vec<u16> {
     let mut result = Vec::new();
 
     if k > (pool.len() as u16) {
