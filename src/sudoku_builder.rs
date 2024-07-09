@@ -5,7 +5,6 @@ use rand::seq::SliceRandom;
 
 // Use ChaCha as it can be seeded to be consistent between runs regardless of OS
 // and regardless of other versions.
-use rand_chacha::*;
 
 // This file is used to build up new sudoku's for test cases and for fun and profit.
 // It uses a combination of seeding base elements of sudokus, randomly adding parts
@@ -37,6 +36,7 @@ fn build_rand_sud(rng: &mut dyn RngCore) -> Sudoku {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rand_chacha::*;
 
     #[test]
     fn test_9_rands() {
