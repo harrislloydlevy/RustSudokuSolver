@@ -2,7 +2,6 @@ use crate::constants::*;
 use crate::sk_box::Box;
 use crate::sk_cell;
 use crate::sudoku::Sudoku;
-use std::collections::VecDeque;
 
 /*
  * Solving technique names taken from sudokuoftheday.com. Logic and code is mine
@@ -31,7 +30,7 @@ struct PossValWhere {
     found: Found,
 }
 
-pub const BLANK_PVW: PossValWhere = PossValWhere {
+const BLANK_PVW: PossValWhere = PossValWhere {
     index: None,
     found: Found::NONE,
 };

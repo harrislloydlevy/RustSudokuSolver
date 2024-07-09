@@ -225,18 +225,6 @@ impl Sudoku {
         self.cells[cell_idx].boxes[box_idx]
     }
 
-    /**
-     *
-     * get_cell
-     *
-     * This function returns the cell at a given index
-     * sudoku. Removes the incovencine and bad prtactice of direclt accessing the
-     * element.
-     */
-    pub fn get_cell(&self, cell_idx: usize) -> Cell {
-        self.cells[cell_idx]
-    }
-
     // This function creates a sudoku from a file. I don't knwo enough rust
     // yet to have it return a more generic error so just using io::Error
     //

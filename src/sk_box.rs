@@ -1,8 +1,5 @@
 use crate::constants::*;
-use crossterm::style::*;
-use crossterm::{cursor::*, execute};
 use std::fmt;
-use std::io::stdout;
 
 // TODO: Change the from_possibles fucntions to use slices instead of vecs.
 
@@ -297,54 +294,6 @@ impl Box {
                 }
                 assert!(found_true);
             }
-        }
-    }
-
-    pub fn pretty_print(&self, diff: Option<Box>) {
-        // See docs for pretty print on sudoku function for full overview.
-        // There are two different way to print here, one for if we have a
-        // confirmed value and another if we onkly have possibles.
-
-        // First check if we have been give a diff to check against, if
-        // we have and it's actually different set a flag to show that we
-        // should print the value in red to show this values is different.
-        let is_diff;
-
-        match diff {
-            Some(diff_box) => is_diff = *self != diff_box,
-            None => {
-                is_diff = false;
-            }
-        }
-
-        if is_diff {
-            execute!(stdout(), SetForegroundColor(Color::Red)).ok();
-        }
-
-        match self.value {
-            Some(x) => {
-                execute!(stdout(), MoveRight(1), MoveDown(1)).ok();
-                print!("{}", x);
-                execute!(stdout(), MoveLeft(2), MoveUp(1)).ok();
-            }
-            None => {
-                for val in 1..10 {
-                    if self.poss[val] == true {
-                        print!("{}", val);
-                    } else {
-                        print!(".");
-                    }
-                    if val % 3 == 0 {
-                        // Every third line move back to the start and down on.
-                        execute!(stdout(), MoveLeft(3), MoveDown(1)).ok();
-                    }
-                }
-                execute!(stdout(), MoveUp(3)).ok();
-            }
-        }
-
-        if is_diff {
-            execute!(stdout(), ResetColor).ok();
         }
     }
 

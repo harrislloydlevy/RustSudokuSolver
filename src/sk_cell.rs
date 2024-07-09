@@ -1,9 +1,5 @@
 use crate::sk_box::*;
-use std::collections::VecDeque;
 use std::fmt;
-use std::io::stdout;
-
-use crossterm::{cursor::*, execute};
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Cell {
@@ -123,62 +119,6 @@ impl Cell {
         self.boxes[col].remove_possible_value(value);
         self.boxes[col + 3].remove_possible_value(value);
         self.boxes[col + 6].remove_possible_value(value);
-    }
-
-    /**
-     *pretty_print
-     *
-     * Prints a nice version of a cell. See sudoku pretty_print for full context
-     * Each box in the cell has it's own print function. This lays out a box lile
-     *
-     *    |    |
-     *    |    |
-     * ---+----+---
-     *    |    |
-     *    |    |
-     * ---+----+---
-     *    |    |
-     *    |    |
-     */
-    pub fn pretty_print(&self, diff: Option<Cell>) {
-        // Start by assuming we are at the top-left corner for cusor position anyway
-        // then draw out the interior lines of the cell.
-
-        // For each row of boxes in the cell start by drawing the outline
-        for row_idx in 0..3 {
-            // Draw the horizontal lines down the centre first, 3 times
-            for _i in 0..3 {
-                print!("   │   │");
-                execute!(stdout(), MoveLeft(8), MoveDown(1)).ok();
-            }
-
-            // Aftger the first and second add an inbetween line
-            if row_idx == 0 || row_idx == 1 {
-                print!("───┼───┼───");
-                execute!(stdout(), MoveLeft(11), MoveDown(1)).ok();
-            }
-        }
-        // Now we are positioned below the box of our cell, inline with the first charachter
-        // so we move back up to the top
-        execute!(stdout(), MoveUp(11)).ok();
-
-        // Now we print each of the 9 boxes in the cell to fill them in
-        for row_idx in 0..3 {
-            for cell_idx in 0..3 {
-                let box_idx = (row_idx * 3) + cell_idx;
-                match diff {
-                    None => {
-                        self.boxes[box_idx].pretty_print(None);
-                    }
-                    Some(diff_cell) => {
-                        self.boxes[box_idx].pretty_print(Some(diff_cell.boxes[box_idx]));
-                    }
-                }
-                execute!(stdout(), MoveRight(4)).ok();
-            }
-            execute!(stdout(), MoveLeft(12), MoveDown(4)).ok();
-        }
-        execute!(stdout(), MoveUp(12)).ok();
     }
 
     pub fn solved(&self) -> bool {
