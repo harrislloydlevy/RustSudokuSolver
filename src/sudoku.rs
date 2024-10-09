@@ -331,6 +331,134 @@ impl Sudoku {
         return Ok(sudoku);
     }
 
+    pub fn from_pretty(filename: String) -> Result<Sudoku, &'static str> {
+        // We expect to read a stream of numbers set out in the same
+        // way a sudo would be pretty printed on page, with "|" and "-" marks
+        // for sepearting cells and each box printed as a 3x3 matrix to show
+        // the possible values in there, or if there is a solved value a single
+        // number in the centre of the 3x3 matrix. Example below:
+        //
+        //╔═══════════╦═══════════╦═══════════╗
+        //║   |...|...║1..|   |12.║.2.|12.|1..║
+        //║ 3 |.56|4.6║456| 8 |.56║4.6|4..|..6║
+        //║   |..9|7..║..9|   |..9║7.9|7.9|7..║
+        //║---+---+---║---+---+---║---+---+---║
+        //║   |...|...║   |1.3|1.3║...|1..|   ║
+        //║ 2 |..6|4.6║ 7 |4..|..6║4.6|4..| 5 ║
+        //║   |.89|.8.║   |..9|..9║..9|.89|   ║
+        //║---+---+---║---+---+---║---+---+---║
+        //║   |...|...║...|.2.|.2.║.2.|.2.|   ║
+        //║ 1 |.56|4.6║456|.5.|.56║4.6|4..| 3 ║
+        //║   |.89|78.║..9|...|..9║7.9|789|   ║
+        //╠═══════════╬═══════════╬═══════════╣
+        //║   |1..|1..║...|.2.|.2.║   |   |...║
+        //║ 4 |...|...║.5.|.5.|.5.║ 3 | 6 |...║
+        //║   |.8.|.8.║..9|...|7.9║   |   |7.9║
+        //║---+---+---║---+---+---║---+---+---║
+        //║   |..3|   ║1.3|1.3|   ║   |1..|1..║
+        //║ 9 |..6| 2 ║..6|...| 4 ║ 5 |...|...║
+        //║   |...|   ║.8.|7..|   ║   |7..|78.║
+        //║---+---+---║---+---+---║---+---+---║
+        //║   |   |..3║1.3|1.3|1.3║.2.|.2.|1..║
+        //║ 5 | 7 |..6║..6|...|..6║4..|4..|...║
+        //║   |   |...║.89|..9|.89║...|...|.89║
+        //╠═══════════╬═══════════╬═══════════╣
+        //║   |   |   ║...|   |...║   |   |   ║
+        //║ 7 | 2 | 9 ║.5.| 6 |.5.║ 1 | 3 | 4 ║
+        //║   |   |   ║.8.|   |.8.║   |   |   ║
+        //║---+---+---║---+---+---║---+---+---║
+        //║   |   |   ║   |1.3|1.3║...|...|...║
+        //║ 8 | 4 | 5 ║ 2 |...|...║..6|...|..6║
+        //║   |   |   ║   |...|...║7.9|7.9|7..║
+        //║---+---+---║---+---+---║---+---+---║
+        //║   |1.3|1.3║...|...|...║   |   |   ║
+        //║ 6 |...|...║4..|4..|...║ 8 | 5 | 2 ║
+        //║   |...|...║..9|7.9|7.9║   |   |   ║
+        //╚═══════════╩═══════════╩═══════════╝
+
+        // Attempt to open the file
+        let file = fs::File::open(filename);
+        let file = match file {
+            Ok(file) => file,
+            Err(error) => panic!("Problem opening the file: {:?}", error),
+        };
+
+        let mut reader = std::io::BufReader::new(file);
+
+        // Instantiatie sudoku as blank
+        let mut sudoku = BLANK_SUDOKU;
+        // To read that stream into our more strutued 3- level tree we iterate
+        // over:
+        // 1. First over each of the 3 rows of cells in the sudoku (cur_cel_row)
+        // 2. Then over each of 3 rows of boxes insides those cells (cur_box_row)
+        //let cur_box_row = 0;
+
+        // 3. The over the 3 cells that cross the row of numbers
+        //let cur_cel_col = 0;
+
+        // 4. Then we iterate over the boxes within that particular cell
+        //let cur_box_col = 0;
+
+        // These iterations then update the current cell, and the curernt box to
+        // read the next value into.
+        let mut line = String::new();
+        for cur_cel_row in 0..3 {
+            for cur_box_row in 0..3 {
+                // Read a new line that crosses across all of the boxes.
+                let length = reader.read_line(&mut line).expect("Could not read line");
+
+                // Make sure there's enough data in line for all the row. May be 14 or 15 lines
+                // depending on whether it's a unix or windows style text file.
+                if length == 15 {
+                    assert_eq!(line.pop(), Some('\n'));
+                    assert_eq!(line.pop(), Some('\r'));
+                } else if length == 14 {
+                    assert_eq!(line.pop(), Some('\n'));
+                } else {
+                    assert!(false);
+                }
+
+                // Read charachters off from the RIGHT of the string using the pop
+                // function. So first read off the \n and tehn continue right to
+                // left.
+
+                // From 3 to 0 because we're going from right to left popping off end of the string.
+                for cur_cel_col in (0..3).rev() {
+                    // Read off the first '|'
+                    assert_eq!(line.pop(), Some('|'));
+                    for cur_box_col in (0..3).rev() {
+                        let char = line.pop().expect("Expected box value, got EoL");
+
+                        // Find the index of the cel and box to write into by multipleying
+                        // row by 3. This matches our treatment of a linear 9 element array
+                        // as a 3x3 array.
+                        let cell_idx: usize = cur_cel_row * 3 + cur_cel_col;
+                        let box_idx: usize = cur_box_row * 3 + cur_box_col;
+
+                        // To convert row and col to an index just times
+                        // the row by 3. This matches our structure of a 9 element
+                        // linear array represeting a 3x3 array
+                        sudoku.cells[cell_idx].boxes[box_idx] = Self::char_to_box(char);
+                    }
+                }
+                line.clear();
+            }
+            // Check for a row of plain "---------" and read to the next line.
+            // But if there's no lines left that's OK if we just read cell row 3
+            reader.read_line(&mut line).expect("Could not read line.");
+            line.clear();
+        }
+
+        // Make sure that the "possibles" in each cell don't cross over with the
+        // filled out values already in the cell.
+        solvers::normalise(&mut sudoku);
+
+        // Make sure the sudoku is well formed
+        sudoku.check();
+
+        return Ok(sudoku);
+    }
+
     /**
      *
      * from_line
@@ -400,6 +528,169 @@ impl Sudoku {
         result
     }
 
+    /**
+         *
+         * from_possibles
+         *
+         * Read a sudoku from a text block that shows not only confirmed values but possible
+         * values for each box. Useful for debugging.
+         *
+         * Expected format is as below:
+    ╔═══════════╦═══════════╦═══════════╗
+    ║   |   |   ║   |12.|12.║...|   |...║
+    ║ 4 | 8 | 7 ║ 3 |...|...║.56| 9 |.56║
+    ║   |   |   ║   |...|...║...|   |...║
+    ║---+---+---║---+---+---║---+---+---║
+    ║...|..3|..3║   |...|...║   |   |   ║
+    ║.5.|.5.|...║ 6 |4..|4..║ 2 | 7 | 1 ║
+    ║..9|..9|..9║   |.8.|.8.║   |   |   ║
+    ║---+---+---║---+---+---║---+---+---║
+    ║   |   |   ║...|   |...║   |   |   ║
+    ║ 1 | 2 | 6 ║.5.| 9 |.5.║ 3 | 8 | 4 ║
+    ║   |   |   ║7..|   |7..║   |   |   ║
+    ╠═══════════╬═══════════╬═══════════╣
+    ║   |..3|   ║...|..3|...║   |   |   ║
+    ║ 7 |4..| 5 ║...|4..|4..║ 1 | 6 | 2 ║
+    ║   |...|   ║.89|.8.|.89║   |   |   ║
+    ║---+---+---║---+---+---║---+---+---║
+    ║...|1.3|..3║   |1.3|...║   |..3|...║
+    ║..6|4.6|4..║ 2 |4.6|.5.║ 8 |4..|.5.║
+    ║..9|..9|..9║   |...|7..║   |...|7..║
+    ║---+---+---║---+---+---║---+---+---║
+    ║.2.|1.3|.2.║...|1.3|1..║...|..3|   ║
+    ║...|4.6|...║.5.|4.6|4..║.5.|4..| 9 ║
+    ║.8.|...|.8.║7..|...|...║7..|...|   ║
+    ╠═══════════╬═══════════╬═══════════╣
+    ║...|...|   ║...|   |   ║   |   |   ║
+    ║.5.|45.| 1 ║4..| 7 | 6 ║ 9 | 2 | 3 ║
+    ║.8.|...|   ║.8.|   |   ║   |   |   ║
+    ║---+---+---║---+---+---║---+---+---║
+    ║   |...|...║   |.2.|.2.║   |   |...║
+    ║ 3 |..6|...║ 1 |...|...║ 4 | 5 |..6║
+    ║   |7..|.89║   |.8.|.89║   |   |7..║
+    ║---+---+---║---+---+---║---+---+---║
+    ║.2.|...|.2.║...|   |   ║...|   |   ║
+    ║..6|4.6|4..║4..| 5 | 3 ║..6| 1 | 8 ║
+    ║..9|7.9|..9║..9|   |   ║7..|   |   ║
+    ╚═══════════╩═══════════╩═══════════╝
+    w
+         */
+    pub fn from_possibles(filename: String) -> Sudoku {
+        let mut result = BLANK_SUDOKU;
+
+        let file = fs::File::open(filename);
+        let file = match file {
+            Ok(file) => file,
+            Err(error) => panic!("Problem opening the file: {:?}", error),
+        };
+
+        let mut reader = std::io::BufReader::new(file);
+        let mut line = String::new();
+
+        // Track which line of the file we are up to.
+        let mut file_row = 0;
+        // Track current row and column of box being read, and row and col within the cell of that box
+
+        // Later on we'll need to keep track of whether boxes are solved or not, befoer we get to
+        // read their solved value so we'll keep a 3x3 array of booleans to show which are solved
+        // and which aren't.
+        let mut solved = [[false; 9]; 9];
+
+        // Now we loop over each line in the whole file
+        while reader.read_line(&mut line).is_ok() {
+            if file_row % 4 == 0 {
+                // Every 4th line is purely decorative so no need to read, just ensure it's the
+                // right length and move on. Note we use chars().count() as the non-ascii chars
+                // we use to seperate numbers turn up as multiple bytes in unicode strings and
+                // thus mess up the count.
+                assert_eq!(line.chars().count(), 38);
+                file_row = file_row + 1;
+                line.clear();
+                continue;
+            }
+
+            // Reach the end of the sudoku to read
+            if file_row >= 37 {
+                break;
+            }
+
+            // Now we can work out what row of the overall sudoku and of the box withing
+            // the sudoku we're on by some simple division and mod values. Divide by 4
+            // to find row from 1 to 3 as each row has 3 darta chars plus the seperator
+            // and mod 4 for value row within the sudoku.
+            let cur_row = (file_row / 4) + 1;
+            let cur_box_row = file_row % 4;
+
+            let mut file_col = 0;
+            for char in line.chars() {
+                if file_col % 4 == 0 {
+                    // Skip over the seperating bits
+                    assert!(char == '|' || char == '║');
+                    file_col = file_col + 1;
+                    continue;
+                }
+
+                // If we have reached end of line break out of the loop
+                if char == '\n' {
+                    break;
+                }
+
+                // Now work out what colum of the sudoku we're reading from by some simple mode and
+                // division.
+                let cur_col = (file_col / 4) + 1;
+                let cur_box_col = file_col % 4;
+
+                assert!(cur_col >= 1 && cur_col <= 9);
+                assert!(cur_row >= 1 && cur_row <= 9);
+                assert!(cur_box_col >= 1 && cur_box_col <= 3);
+                assert!(cur_box_row >= 1 && cur_box_row <= 3);
+
+                // OK! Now we know what charachter we just read, the box it's for from the cur_row
+                // and cur_col and which of the 8 possible values withing the box it is from the
+                // cur_box_col/row.
+
+                let (cell_idx, box_idx) = Self::col_row_to_cell_idx(cur_col, cur_row);
+
+                // This value from 1 to 9 shows which of the possible values wihtin the box we're
+                // looking at. Each char at 1-9 could be a '.' if it's not apossibvle value, a ' '
+                // if we've found the vale for this box, or a number to show that the value is
+                // still possible.
+                //
+                // Note that index 5 is "special" if a box has been solved index 5 will ahve the
+                // value in it.
+                let value_idx = (((cur_box_row - 1) * 3) + (cur_box_col)) as u8;
+                if char == '.' {
+                    // This shows that a value isn't possible for this cell
+                    // Work out the value based on the cur_box_col and cur_box_cell
+                    result.cells[cell_idx].boxes[box_idx].remove_possible_value(value_idx as u16);
+                } else if char == ' ' {
+                    // Mark that this cell is solved, this is also helpful if
+                    solved[cell_idx][box_idx] = true;
+                } else {
+                    assert!(char >= '1' && char <= '9');
+
+                    if solved[cell_idx][box_idx] && value_idx == 5 {
+                        // We found a value and we're in a 'solved' cell as indicated by having
+                        // found spaces (see above). We must be in the centre box value (i.e. 5)
+                        assert!(value_idx == 5);
+                        result.cells[cell_idx].boxes[box_idx]
+                            .set_val(char.to_digit(10).unwrap() as u8);
+                    } else {
+                        // Otherwise we are just showing a possible value for the box so we just
+                        // ensure it's a number in the right position.
+                        assert!(char.to_digit(10).unwrap() as u8 == value_idx);
+                    }
+                }
+
+                file_col = file_col + 1;
+            }
+
+            line.clear();
+            file_row = file_row + 1;
+        }
+        result
+    }
+
     fn char_to_box(char: char) -> Box {
         if char == '.' {
             BLANK_BOX
@@ -414,6 +705,8 @@ impl Sudoku {
     }
 
     // TODO: Only public for testing. Shoudl work out how to avoid it.
+    // Input col and row  of the sudoku as numbers from 1 to 9 and get the index of the
+    // cell and box withing it from 0 to 8;
     pub fn col_row_to_cell_idx(col: usize, row: usize) -> (usize, usize) {
         // Main job here is to turn the 1-9 absolute column and row
         // within the sudoku into a cell index (cells 1-9 within) and then box index (1-9 within)
@@ -970,5 +1263,12 @@ mod tests {
 
         // Current logic can solve 26 of the tests
         assert_eq!(i, 26);
+    }
+
+    #[test]
+    fn test_read_possibles() {
+        let result = Sudoku::from_possibles("test/possibles.txt".to_string());
+
+        result.pretty_print(None, None);
     }
 }

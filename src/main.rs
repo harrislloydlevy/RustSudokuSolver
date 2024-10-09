@@ -1,10 +1,9 @@
-// TODO: Move each solving function out to it's own library and make each generic signature
-// TODO: Add new solving function where if 'x' boxes all can _only_ be the same 'x' values then
-//       any other boxes in their row/cell can't be those values
 // TODO: 'reduce' fucntuon to merge two sudokus of possibles and solving as 'map' function
-// TODO: Hide more of the internal structure of the structs inside the modules
-// TODO: Easier way to get the values/posibles of a specific cell/box than directly looking up
-//       the internal structures.
+//       as part of making multi-threaded
+// TODO  Load sudoku from a file that shows possibles as well as actual values to make debugging
+//       easier
+// TODO  Clean up all the unused fucntions that are used in tests but not in main code to be
+//       used from main code
 
 mod constants;
 mod sk_box;

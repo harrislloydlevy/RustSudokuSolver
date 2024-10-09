@@ -245,19 +245,12 @@ fn naked_set_array(mut boxes: Vec<&mut Box>) {
             // If there are exactly as many as  we are looking for (hardcoded to 4 right now)
             //then remove this bit pattern as a possibility from all other boxes in the collection.
             let remove_values = Box::invert_possible_bits(*pattern);
-            println!(
-                "Found isolated {:?} Removing {:?}",
-                Box::from_possibles_bits(*pattern),
-                Box::from_possibles_bits(remove_values)
-            );
-            println!("Pre remove  {:?}", boxes);
 
             // Find the boxe
             boxes
                 .iter_mut()
                 .filter(|x| (x.get_possibles_bits() & *pattern) > 0)
                 .for_each(|x| x.remove_impossible_bits(remove_values));
-            println!("Post remove {:?}", boxes);
         }
     }
 }
@@ -792,5 +785,12 @@ mod tests {
 
         // Check that the bot right most box got solved as it's the last in the column
         assert_eq!(sudoku.cells[BOT_RHT].boxes[BOT_RHT], Box::from_val(1));
+    }
+
+    #[test]
+    fn test_xwing() {
+        let mut sudoku = Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
+
+        sudoku.solve()
     }
 }
