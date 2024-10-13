@@ -33,9 +33,8 @@ fn main() {
         assert!(args[1].starts_with('-'));
         file_type = match args[1].chars().nth(1).unwrap() {
             's' => FileType::Simple,
-            'p' => FileType::Pretty,
             'm' => FileType::Multi,
-            'o' => FileType::Possibles,
+            'p' => FileType::Possibles,
             _ => FileType::Simple,
         };
 
@@ -45,8 +44,6 @@ fn main() {
     // Parse the input file provided into a sudoku depending on the type
     if matches!(file_type, FileType::Simple) {
         sudokus.push(sudoku::Sudoku::from_ss(filename.to_string()).unwrap());
-    } else if matches!(file_type, FileType::Pretty) {
-        sudokus.push(sudoku::Sudoku::from_pretty(filename.to_string()).unwrap());
     } else if matches!(file_type, FileType::Possibles) {
         sudokus.push(Sudoku::from_possibles(filename.to_string()));
     } else if matches!(file_type, FileType::Multi) {

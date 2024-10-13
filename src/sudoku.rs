@@ -35,7 +35,6 @@ pub const BLANK_SUDOKU: Sudoku = Sudoku {
 
 pub enum FileType {
     Simple,
-    Pretty,
     Multi,
     Possibles,
 }
@@ -255,90 +254,6 @@ impl Sudoku {
         // |345|345|345|
         // |678|678|678|
 
-        // Attempt to open the file
-        let file = fs::File::open(filename);
-        let file = match file {
-            Ok(file) => file,
-            Err(error) => panic!("Problem opening the file: {:?}", error),
-        };
-
-        let mut reader = std::io::BufReader::new(file);
-
-        // Instantiatie sudoku as blank
-        let mut sudoku = BLANK_SUDOKU;
-        // To read that stream into our more strutued 3- level tree we iterate
-        // over:
-        // 1. First over each of the 3 rows of cells in the sudoku (cur_cel_row)
-        // 2. Then over each of 3 rows of boxes insides those cells (cur_box_row)
-        //let cur_box_row = 0;
-
-        // 3. The over the 3 cells that cross the row of numbers
-        //let cur_cel_col = 0;
-
-        // 4. Then we iterate over the boxes within that particular cell
-        //let cur_box_col = 0;
-
-        // These iterations then update the current cell, and the curernt box to
-        // read the next value into.
-        let mut line = String::new();
-        for cur_cel_row in 0..3 {
-            for cur_box_row in 0..3 {
-                // Read a new line that crosses across all of the boxes.
-                let length = reader.read_line(&mut line).expect("Could not read line");
-
-                // Make sure there's enough data in line for all the row. May be 14 or 15 lines
-                // depending on whether it's a unix or windows style text file.
-                if length == 15 {
-                    assert_eq!(line.pop(), Some('\n'));
-                    assert_eq!(line.pop(), Some('\r'));
-                } else if length == 14 {
-                    assert_eq!(line.pop(), Some('\n'));
-                } else {
-                    assert!(false);
-                }
-
-                // Read charachters off from the RIGHT of the string using the pop
-                // function. So first read off the \n and tehn continue right to
-                // left.
-
-                // From 3 to 0 because we're going from right to left popping off end of the string.
-                for cur_cel_col in (0..3).rev() {
-                    // Read off the first '|'
-                    assert_eq!(line.pop(), Some('|'));
-                    for cur_box_col in (0..3).rev() {
-                        let char = line.pop().expect("Expected box value, got EoL");
-
-                        // Find the index of the cel and box to write into by multipleying
-                        // row by 3. This matches our treatment of a linear 9 element array
-                        // as a 3x3 array.
-                        let cell_idx: usize = cur_cel_row * 3 + cur_cel_col;
-                        let box_idx: usize = cur_box_row * 3 + cur_box_col;
-
-                        // To convert row and col to an index just times
-                        // the row by 3. This matches our structure of a 9 element
-                        // linear array represeting a 3x3 array
-                        sudoku.cells[cell_idx].boxes[box_idx] = Self::char_to_box(char);
-                    }
-                }
-                line.clear();
-            }
-            // Check for a row of plain "---------" and read to the next line.
-            // But if there's no lines left that's OK if we just read cell row 3
-            reader.read_line(&mut line).expect("Could not read line.");
-            line.clear();
-        }
-
-        // Make sure that the "possibles" in each cell don't cross over with the
-        // filled out values already in the cell.
-        solvers::normalise(&mut sudoku);
-
-        // Make sure the sudoku is well formed
-        sudoku.check();
-
-        return Ok(sudoku);
-    }
-
-    pub fn from_pretty(filename: String) -> Result<Sudoku, &'static str> {
         // Attempt to open the file
         let file = fs::File::open(filename);
         let file = match file {
