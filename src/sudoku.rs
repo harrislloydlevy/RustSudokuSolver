@@ -33,6 +33,13 @@ pub const BLANK_SUDOKU: Sudoku = Sudoku {
     ],
 };
 
+pub enum FileType {
+    Simple,
+    Pretty,
+    Multi,
+    Possibles,
+}
+
 impl Sudoku {
     /**
      * row_mut
@@ -592,7 +599,7 @@ impl Sudoku {
         // Track current row and column of box being read, and row and col within the cell of that box
 
         // Later on we'll need to keep track of whether boxes are solved or not, befoer we get to
-        // read their solved value so we'll keep a 3x3 array of booleans to show which are solved
+        // read their solved value so we'll keep a 9x9 array of booleans to show which are solved
         // and which aren't.
         let mut solved = [[false; 9]; 9];
 
