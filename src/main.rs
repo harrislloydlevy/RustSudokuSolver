@@ -53,14 +53,15 @@ fn main() {
     // Now just solve all the sudokus in the vector. Will only be one for most cases.
     //
     for mut sudoku in sudokus {
-        sudoku.pretty_print(None, Some("Solving".to_string()));
+        println!("Solving:");
+        sudoku.print_ss();
 
         sudoku.solve();
 
         if sudoku.solved() {
             sudoku.print_ss();
         } else {
-            sudoku.pretty_print(None, Some("Incomplete Solve".to_string()));
+            sudoku.print_possibles(None, Some("Incomplete Solve".to_string()));
         }
     }
     return;

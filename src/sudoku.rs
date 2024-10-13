@@ -638,7 +638,7 @@ impl Sudoku {
     }
 
     /**
-     * pretty_print
+     * print_possibles
      *
      * Print to screen a nice version of the sudoku that shows actual
      * values and potential ones too. Every box is a 3x3 cell of numbers
@@ -647,7 +647,7 @@ impl Sudoku {
      * diff - If provided print cells that differ from this sudoku a
      *        different color
      */
-    pub fn pretty_print(&self, diff: Option<Sudoku>, commentary: Option<String>) {
+    pub fn print_possibles(&self, diff: Option<Sudoku>, commentary: Option<String>) {
         // Each box is a 3x3 cell of text. If no confirmed values each
         // potential is showin in it's own position (1-9) and excluded
         // values are shown as a .
@@ -668,7 +668,7 @@ impl Sudoku {
         // Cells are then laid out in the overall sudoku with double lines between them.
         //
         // So this function just prints a shape like below, then moves the cursor around
-        // to have teh cell pretty_print function do it's thing in each box:"
+        // to have teh cell print_possibles function do it's thing in each box:"
         // ╔════╦════╦════╗
         // ║    ║    ║    ║
         // ╠════╬════╬════╣
@@ -793,7 +793,7 @@ impl Sudoku {
     }
 
     pub fn solve(&mut self) {
-        self.pretty_print(None, Some("Solving".to_string()));
+        self.print_possibles(None, Some("Solving".to_string()));
         self.check();
         let mut i = 0;
         while !self.solved() {
@@ -802,17 +802,17 @@ impl Sudoku {
 
             // Try naive solving
             solvers::single_position(self);
-            self.pretty_print(Some(prev), Some("Applied Single Position".to_string()));
+            self.print_possibles(Some(prev), Some("Applied Single Position".to_string()));
             self.check();
 
             prev = *self;
             solvers::naked_set(self);
-            self.pretty_print(Some(prev), Some("Applied Naked Set".to_string()));
+            self.print_possibles(Some(prev), Some("Applied Naked Set".to_string()));
             self.check();
 
             prev = *self;
             solvers::candidate_line(self);
-            self.pretty_print(Some(prev), Some("Applied Candidate Line".to_string()));
+            self.print_possibles(Some(prev), Some("Applied Candidate Line".to_string()));
             self.check();
 
             // If we made no progress at all over the whole last round - then we don't have the
@@ -1024,7 +1024,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sudoku_pretty_print_single() {
+    fn test_sudoku_print_possibles_single() {
         // This is a shitty test - not sure how to test that console output matches a
         // expected outcome!
         //
@@ -1040,7 +1040,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sudoku_pretty_print_compare() {
+    fn test_sudoku_print_possibles_compare() {
         // This is a shitty test - not sure how to test that console output matches a
         // expected outcome!
         //
@@ -1144,6 +1144,6 @@ mod tests {
     fn test_read_possibles() {
         let result = Sudoku::from_possibles("test/possibles.txt".to_string());
 
-        result.pretty_print(None, None);
+        result.print_possibles(None, None);
     }
 }
