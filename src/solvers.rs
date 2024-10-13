@@ -227,7 +227,7 @@ fn naked_set_array(mut boxes: Vec<&mut Box>) {
             // Get all the boxes in our input that match any part of the bit pattern.
             let matched_all_count: u16 = boxes
                 .iter()
-                .filter(|x| (x.get_possibles_bits() & *pattern) > 0)
+                .filter(|x| (x.get_possibles_bits() & *pattern) > OFF)
                 .count() as u16;
 
             // If they turn up in more boxes than there are factors (i.e. there are
@@ -249,7 +249,7 @@ fn naked_set_array(mut boxes: Vec<&mut Box>) {
             // Find the boxe
             boxes
                 .iter_mut()
-                .filter(|x| (x.get_possibles_bits() & *pattern) > 0)
+                .filter(|x| (x.get_possibles_bits() & *pattern) > OFF)
                 .for_each(|x| x.remove_impossible_bits(remove_values));
         }
     }
