@@ -792,7 +792,7 @@ impl Sudoku {
         }
     }
 
-    pub fn solve(&mut self) {
+    pub fn solve(&mut self, verbose: bool) {
         self.print_possibles(None, Some("Solving".to_string()));
         self.check();
         let mut i = 0;
@@ -802,26 +802,36 @@ impl Sudoku {
 
             // Try naive solving
             solvers::single_position(self);
-            self.print_possibles(Some(prev), Some("Applied Single Position".to_string()));
+            if verbose {
+                self.print_possibles(Some(prev), Some("Applied Single Position".to_string()));
+            }
             self.check();
 
             prev = *self;
             solvers::naked_set(self);
-            self.print_possibles(Some(prev), Some("Applied Naked Set".to_string()));
+            if verbose {
+                self.print_possibles(Some(prev), Some("Applied Naked Set".to_string()));
+            }
             self.check();
 
             prev = *self;
             solvers::candidate_line(self);
-            self.print_possibles(Some(prev), Some("Applied Candidate Line".to_string()));
+            if verbose {
+                self.print_possibles(Some(prev), Some("Applied Candidate Line".to_string()));
+            }
             self.check();
 
             // If we made no progress at all over the whole last round - then we don't have the
             // abiliyt to solve this sudoku.
             if orig == *self {
-                println!("Could not solve sudoku.");
+                if verbose {
+                    println!("Could not solve sudoku.");
+                }
                 return;
             } else {
-                println!("Going for round {}", i);
+                if verbose {
+                    println!("Going for round {}", i);
+                }
                 i += 1;
             }
         }
@@ -1116,7 +1126,7 @@ mod tests {
         assert_eq!(result.len(), 95);
 
         for mut sudoku in result {
-            sudoku.solve();
+            sudoku.solve(true);
         }
     }
 
@@ -1127,7 +1137,7 @@ mod tests {
         let mut j = 1;
 
         for mut sudoku in result {
-            sudoku.solve();
+            sudoku.solve(true);
             if sudoku.solved() {
                 i += 1;
             } else {

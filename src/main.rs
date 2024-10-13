@@ -56,7 +56,7 @@ fn main() {
         println!("Solving:");
         sudoku.print_ss();
 
-        sudoku.solve();
+        sudoku.solve(true);
 
         if sudoku.solved() {
             sudoku.print_ss();
