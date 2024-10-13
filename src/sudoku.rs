@@ -339,50 +339,6 @@ impl Sudoku {
     }
 
     pub fn from_pretty(filename: String) -> Result<Sudoku, &'static str> {
-        // We expect to read a stream of numbers set out in the same
-        // way a sudo would be pretty printed on page, with "|" and "-" marks
-        // for sepearting cells and each box printed as a 3x3 matrix to show
-        // the possible values in there, or if there is a solved value a single
-        // number in the centre of the 3x3 matrix. Example below:
-        //
-        //╔═══════════╦═══════════╦═══════════╗
-        //║   |...|...║1..|   |12.║.2.|12.|1..║
-        //║ 3 |.56|4.6║456| 8 |.56║4.6|4..|..6║
-        //║   |..9|7..║..9|   |..9║7.9|7.9|7..║
-        //║---+---+---║---+---+---║---+---+---║
-        //║   |...|...║   |1.3|1.3║...|1..|   ║
-        //║ 2 |..6|4.6║ 7 |4..|..6║4.6|4..| 5 ║
-        //║   |.89|.8.║   |..9|..9║..9|.89|   ║
-        //║---+---+---║---+---+---║---+---+---║
-        //║   |...|...║...|.2.|.2.║.2.|.2.|   ║
-        //║ 1 |.56|4.6║456|.5.|.56║4.6|4..| 3 ║
-        //║   |.89|78.║..9|...|..9║7.9|789|   ║
-        //╠═══════════╬═══════════╬═══════════╣
-        //║   |1..|1..║...|.2.|.2.║   |   |...║
-        //║ 4 |...|...║.5.|.5.|.5.║ 3 | 6 |...║
-        //║   |.8.|.8.║..9|...|7.9║   |   |7.9║
-        //║---+---+---║---+---+---║---+---+---║
-        //║   |..3|   ║1.3|1.3|   ║   |1..|1..║
-        //║ 9 |..6| 2 ║..6|...| 4 ║ 5 |...|...║
-        //║   |...|   ║.8.|7..|   ║   |7..|78.║
-        //║---+---+---║---+---+---║---+---+---║
-        //║   |   |..3║1.3|1.3|1.3║.2.|.2.|1..║
-        //║ 5 | 7 |..6║..6|...|..6║4..|4..|...║
-        //║   |   |...║.89|..9|.89║...|...|.89║
-        //╠═══════════╬═══════════╬═══════════╣
-        //║   |   |   ║...|   |...║   |   |   ║
-        //║ 7 | 2 | 9 ║.5.| 6 |.5.║ 1 | 3 | 4 ║
-        //║   |   |   ║.8.|   |.8.║   |   |   ║
-        //║---+---+---║---+---+---║---+---+---║
-        //║   |   |   ║   |1.3|1.3║...|...|...║
-        //║ 8 | 4 | 5 ║ 2 |...|...║..6|...|..6║
-        //║   |   |   ║   |...|...║7.9|7.9|7..║
-        //║---+---+---║---+---+---║---+---+---║
-        //║   |1.3|1.3║...|...|...║   |   |   ║
-        //║ 6 |...|...║4..|4..|...║ 8 | 5 | 2 ║
-        //║   |...|...║..9|7.9|7.9║   |   |   ║
-        //╚═══════════╩═══════════╩═══════════╝
-
         // Attempt to open the file
         let file = fs::File::open(filename);
         let file = match file {
@@ -750,22 +706,19 @@ impl Sudoku {
 
     pub fn print_ss(&self) {
         println!("-----------");
-        for cur_cel_row in 0..3 {
-            for cur_box_row in 0..3 {
-                println!(
-                    "{}{}{}|{}{}{}|{}{}{}",
-                    self.cells[cur_cel_row * 3].boxes[cur_box_row * 3],
-                    self.cells[cur_cel_row * 3].boxes[cur_box_row * 3 + 1],
-                    self.cells[cur_cel_row * 3].boxes[cur_box_row * 3 + 2],
-                    self.cells[cur_cel_row * 3 + 1].boxes[cur_box_row * 3],
-                    self.cells[cur_cel_row * 3 + 1].boxes[cur_box_row * 3 + 1],
-                    self.cells[cur_cel_row * 3 + 1].boxes[cur_box_row * 3 + 2],
-                    self.cells[cur_cel_row * 3 + 2].boxes[cur_box_row * 3],
-                    self.cells[cur_cel_row * 3 + 2].boxes[cur_box_row * 3 + 1],
-                    self.cells[cur_cel_row * 3 + 2].boxes[cur_box_row * 3 + 2]
-                );
+        for cur_row in 1..=9 {
+            for cur_col in 1..=9 {
+                print!("{}", self.get_c(cur_col, cur_row));
+                if (cur_col > 0) && (cur_col % 3 == 0) && (cur_col < 9) {
+                    print!("|");
+                } else if cur_col == 9 {
+                    println!("");
+                }
             }
-            println!("-----------");
+
+            if cur_row > 0 && cur_row % 3 == 0 {
+                println!("-----------");
+            }
         }
     }
 
