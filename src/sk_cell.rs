@@ -52,6 +52,7 @@ impl Cell {
      * Used for intialising cells during sudoku construction so doesn't
      * set any possible values or consider whether cell is valid internally.
      */
+    #[allow(dead_code)]
     pub fn set(&mut self, values: [u8; 9]) {
         assert_eq!(values.len(), 9);
         for x in 0..9 {
