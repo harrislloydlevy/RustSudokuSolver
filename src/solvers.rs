@@ -462,6 +462,111 @@ pub fn candidate_line(sudoku: &mut Sudoku) {
     }
 }
 
+/**
+* xwing
+*
+* Apply the "xwing" solving method to a Sudoku. This method looks for a situation where there
+* is a square or X of a given possible value in two rows where that possible value
+* occurs only twice in that row or column. This then menas that that possible value must be in
+* either the top-left and bottom-right of the the "X" or visa-versa and thus the possible value
+* shoud be removed from every other square in the colums of the "X".
+*
+* The same logic can then be applied by looking for X wings where there are only two possibles
+* in the columns, and then removing the value from the rows.
+* only possible
+*
+*/
+pub fn xwing(sudoku: &mut Sudoku) {
+    // First we check for X wings across rows, removing columns
+    for cur_row_idx in 1..9 {
+        let row = sudoku.get_row(cur_row_idx);
+
+        // Now we iterate over values 1 to 9 seeing if there are values that occur exactly twice
+        'poss_vals_loop: for poss_val in 1..=9 {
+            let mut left_col_idx = 0;
+            let mut right_col_idx = 0;
+
+            // Now check each box in the row for possibly being that value.
+            for cur_col_idx in 0..9 {
+                if row[cur_col_idx].is_poss(poss_val) {
+                    // Found a possible value. If it's the first find set the left_col_idx of
+                    // the X wing, if it's the second (as known by having left set) set the right
+                    // col_idx, but if it's the third it can't be used for an xwing so break.
+                    if left_col_idx == 0 {
+                        left_col_idx = cur_col_idx;
+                    } else if right_col_idx == 0 {
+                        right_col_idx = cur_col_idx;
+                    } else {
+                        break 'poss_vals_loop;
+                    }
+                }
+            }
+
+            // If we arrive here and right_col hasn't been found that means we either found only
+            // left, or neither in the row as possible cols for this value.
+            if right_col_idx == 0 {
+                break 'poss_vals_loop;
+            }
+            // OK - at this point we've identified that we've got a potential top-row
+            // of an X-wing, so now we look down the rest of the sudoku checking if
+            // there's a matching
+            assert!(left_col_idx != 0);
+            assert!(right_col_idx != 0);
+            let top_row_idx = cur_row_idx;
+
+            // Now search for a matching bottom of the X in all rows under the topw row.
+            // We don't need to search "up" the sudoku as well as the pattern is symmetrical so if
+            // there was a matching X above it will be found already. A double X where two xwings
+            // are stacked on top of each other sharing a mid-layer will also be found by just
+            // looking down.
+
+            'bot_row_loop: for bot_row_idx in (cur_row_idx + 1)..9 {
+                let bot_row = sudoku.get_row(bot_row_idx);
+
+                for cur_col_idx in 0..9 {
+                    // If the possible value is only possible in the left and right col_idxs
+                    // already found for the top of the x wing then we have a match. So we check
+                    // every col of thius row making sure it's either not possible if the col_idx
+                    // isn't left/right one, or is possible in the left/right.
+                    if bot_row[cur_col_idx].is_poss(poss_val)
+                        && ((cur_col_idx != left_col_idx) && (cur_col_idx != right_col_idx))
+                    {
+                        // If here we found the possible value in this row at the col indx
+                        // but it wasn't lining up with the x wing cols, so this row can't match.
+                        //
+                        break 'bot_row_loop;
+                    }
+
+                    if !bot_row[cur_col_idx].is_poss(poss_val)
+                        && ((cur_col_idx == left_col_idx) || (cur_col_idx == right_col_idx))
+                    {
+                        // If here we found the possible value in this row at the col indx
+                        // but it wasn't lining up with the x wing cols, so this row can't match.
+                        //
+                        break 'bot_row_loop;
+                    }
+                }
+
+                // If we arrived here hallejlujah we have found an X wing! top_row_idx and
+                // bot_row_idx says which rows it is on, and left_col_idx and right_col_idx say which
+                // columsn it is on.
+                //
+                // So for the payoff we can remove the possible value of the X wing from every box
+                // in the matched rows except for the xwing locations itself.
+                for row_idx in [left_col_idx, right_col_idx] {
+                    let mut row = sudoku.get_col_mut(row_idx);
+
+                    for idx in 0..9 {
+                        if !(idx == top_row_idx || idx == bot_row_idx) {
+                            row[idx].remove_possible_value(poss_val as u16);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     // Inherit everything from up a level so we can run functions from there.
@@ -789,8 +894,14 @@ mod tests {
 
     #[test]
     fn test_xwing() {
-        let mut sudoku = Sudoku::from_ss("test/easy_solve.ss".to_string()).unwrap();
+        //et mut sudoku = Sudoku::from_possibles("test/xwing_ready.ss".to_string());
+        let mut sudoku = Sudoku::from_possibles("test/xwing_ready.ss".to_string());
 
-        sudoku.solve()
+        assert!(sudoku.cells[MID_MID].boxes[TOP_MID].is_poss(9));
+        assert!(sudoku.cells[MID_RHT].boxes[TOP_MID].is_poss(9));
+        // At this point there is an X-Wing solution available on A5, A8, E5, E8
+        xwing(&mut sudoku);
+        assert!(!sudoku.cells[MID_MID].boxes[TOP_MID].is_poss(9));
+        assert!(!sudoku.cells[MID_RHT].boxes[TOP_MID].is_poss(9));
     }
 }
