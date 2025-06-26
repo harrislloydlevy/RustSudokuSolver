@@ -63,6 +63,7 @@ impl Box {
      *
      * Create a new box without a known value, from with a known set of possible values.
      */
+    #[allow(dead_code)]
     pub fn from_possibles(possibles: Vec<u8>) -> Box {
         let mut new_box = BLANK_BOX;
         new_box.set_possibles(possibles);
@@ -125,6 +126,7 @@ impl Box {
      *
      * Create a new box without a known value, from with a known set of possible values.
      */
+    #[allow(dead_code)]
     pub fn from_possibles_bits(possibles: u16) -> Box {
         let mut new_box = BLANK_BOX;
         new_box.set_possibles_bits(possibles);
