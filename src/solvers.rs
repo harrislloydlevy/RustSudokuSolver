@@ -478,13 +478,15 @@ pub fn candidate_line(sudoku: &mut Sudoku) {
 */
 pub fn xwing(sudoku: &mut Sudoku) {
     // First we check for X wings across rows, removing columns
-    for cur_row_idx in 1..9 {
+    for cur_row_idx in 0..9 {
         let row = sudoku.get_row(cur_row_idx);
 
         // Now we iterate over values 1 to 9 seeing if there are values that occur exactly twice
         'poss_vals_loop: for poss_val in 1..=9 {
             let mut left_col_idx = 0;
+            let mut found_left = false;
             let mut right_col_idx = 0;
+            let mut found_right = false;
 
             // Now check each box in the row for possibly being that value.
             for cur_col_idx in 0..9 {
@@ -492,26 +494,30 @@ pub fn xwing(sudoku: &mut Sudoku) {
                     // Found a possible value. If it's the first find set the left_col_idx of
                     // the X wing, if it's the second (as known by having left set) set the right
                     // col_idx, but if it's the third it can't be used for an xwing so break.
-                    if left_col_idx == 0 {
+                    if found_left == false {
                         left_col_idx = cur_col_idx;
-                    } else if right_col_idx == 0 {
+                        found_left = true;
+                    } else if found_right == false {
                         right_col_idx = cur_col_idx;
+                        found_right = true;
                     } else {
-                        break 'poss_vals_loop;
+                        // If we get here we found the possible value for a third time, so an xwing
+                        // isn't possible.
+                        continue 'poss_vals_loop;
                     }
                 }
             }
 
             // If we arrive here and right_col hasn't been found that means we either found only
             // left, or neither in the row as possible cols for this value.
-            if right_col_idx == 0 {
-                break 'poss_vals_loop;
+            if !found_right {
+                continue 'poss_vals_loop;
             }
             // OK - at this point we've identified that we've got a potential top-row
             // of an X-wing, so now we look down the rest of the sudoku checking if
             // there's a matching
-            assert!(left_col_idx != 0);
-            assert!(right_col_idx != 0);
+            assert!(found_left && found_right);
+            assert!(right_col_idx > 0);
             let top_row_idx = cur_row_idx;
 
             // Now search for a matching bottom of the X in all rows under the topw row.
@@ -534,7 +540,7 @@ pub fn xwing(sudoku: &mut Sudoku) {
                         // If here we found the possible value in this row at the col indx
                         // but it wasn't lining up with the x wing cols, so this row can't match.
                         //
-                        break 'bot_row_loop;
+                        continue 'bot_row_loop;
                     }
 
                     if !bot_row[cur_col_idx].is_poss(poss_val)
@@ -543,7 +549,7 @@ pub fn xwing(sudoku: &mut Sudoku) {
                         // If here we found the possible value in this row at the col indx
                         // but it wasn't lining up with the x wing cols, so this row can't match.
                         //
-                        break 'bot_row_loop;
+                        continue 'bot_row_loop;
                     }
                 }
 
