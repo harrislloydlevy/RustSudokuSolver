@@ -526,6 +526,11 @@ pub fn xwing(sudoku: &mut Sudoku) {
             // are stacked on top of each other sharing a mid-layer will also be found by just
             // looking down.
 
+            println!(
+                "Found top element of X wing on row {}, value {} on colums {} and {}",
+                top_row_idx, poss_val, left_col_idx, right_col_idx
+            );
+
             'bot_row_loop: for bot_row_idx in (cur_row_idx + 1)..9 {
                 let bot_row = sudoku.get_row(bot_row_idx);
 
@@ -534,6 +539,7 @@ pub fn xwing(sudoku: &mut Sudoku) {
                     // already found for the top of the x wing then we have a match. So we check
                     // every col of thius row making sure it's either not possible if the col_idx
                     // isn't left/right one, or is possible in the left/right.
+
                     if bot_row[cur_col_idx].is_poss(poss_val)
                         && ((cur_col_idx != left_col_idx) && (cur_col_idx != right_col_idx))
                     {
@@ -553,18 +559,23 @@ pub fn xwing(sudoku: &mut Sudoku) {
                     }
                 }
 
+                println!(
+                    "Found bottom element of X wing on row {}, value {} on colums {} and {}",
+                    bot_row_idx, poss_val, left_col_idx, right_col_idx
+                );
+
                 // If we arrived here hallejlujah we have found an X wing! top_row_idx and
                 // bot_row_idx says which rows it is on, and left_col_idx and right_col_idx say which
                 // columsn it is on.
                 //
                 // So for the payoff we can remove the possible value of the X wing from every box
                 // in the matched rows except for the xwing locations itself.
-                for row_idx in [left_col_idx, right_col_idx] {
-                    let mut row = sudoku.get_col_mut(row_idx);
+                for col_idx in [left_col_idx, right_col_idx] {
+                    let mut col = sudoku.get_col_mut(col_idx);
 
                     for idx in 0..9 {
                         if !(idx == top_row_idx || idx == bot_row_idx) {
-                            row[idx].remove_possible_value(poss_val as u16);
+                            col[idx].remove_possible_value(poss_val as u16);
                         }
                     }
                 }
